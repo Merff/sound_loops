@@ -1,0 +1,82 @@
+"""Подключение к Postgres, создание базы и схемы."""
+
+from __future__ import annotations
+
+from collections.abc import Iterator
+from contextlib import contextmanager
+from urllib.parse import urlsplit, urlunsplit
+
+import psycopg
+
+SCHEMA_SQL = """
+CREATE TABLE IF NOT EXISTS loops (
+    id SERIAL PRIMARY KEY,
+    path TEXT NOT NULL UNIQUE,
+    duration_seconds DOUBLE PRECISION NOT NULL,
+    width INTEGER,
+    height INTEGER,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS tracks (
+    id SERIAL PRIMARY KEY,
+    path TEXT NOT NULL UNIQUE,
+    duration_seconds DOUBLE PRECISION NOT NULL,
+    fma_track_id INTEGER,
+    title TEXT,
+    artist TEXT,
+    genre TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS track_segments (
+    id SERIAL PRIMARY KEY,
+    track_id INTEGER NOT NULL REFERENCES tracks(id) ON DELETE CASCADE,
+    start_seconds DOUBLE PRECISION NOT NULL,
+    duration_seconds DOUBLE PRECISION NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE (track_id, start_seconds)
+);
+
+CREATE TABLE IF NOT EXISTS renders (
+    id SERIAL PRIMARY KEY,
+    loop_id INTEGER NOT NULL REFERENCES loops(id),
+    track_segment_id INTEGER NOT NULL REFERENCES track_segments(id),
+    output_path TEXT NOT NULL,
+    duration_seconds DOUBLE PRECISION NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+"""
+
+
+def _server_url_and_dbname(database_url: str) -> tuple[str, str]:
+    """Разбить URL на (строка подключения к серверу без конкретной базы, имя базы)."""
+    parts = urlsplit(database_url)
+    dbname = parts.path.lstrip("/")
+    if not dbname:
+        raise ValueError(f"в DATABASE_URL не указано имя базы: {database_url}")
+    server_parts = parts._replace(path="/postgres")
+    return urlunsplit(server_parts), dbname
+
+
+def ensure_database_exists(database_url: str) -> None:
+    """Создать базу, если её ещё нет. Подключается к обслуживающей базе postgres."""
+    server_url, dbname = _server_url_and_dbname(database_url)
+    with psycopg.connect(server_url, autocommit=True) as conn:
+        exists = conn.execute(
+            "SELECT 1 FROM pg_database WHERE datname = %s", (dbname,)
+        ).fetchone()
+        if not exists:
+            conn.execute(f'CREATE DATABASE "{dbname}"')
+
+
+def init_schema(database_url: str) -> None:
+    """Создать схему в целевой базе. Идемпотентно — повторный запуск не падает."""
+    with psycopg.connect(database_url, autocommit=True) as conn:
+        conn.execute(SCHEMA_SQL)
+
+
+@contextmanager
+def connect(database_url: str) -> Iterator[psycopg.Connection]:
+    with psycopg.connect(database_url) as conn:
+        yield conn
