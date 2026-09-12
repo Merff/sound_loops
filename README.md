@@ -18,7 +18,7 @@
 Установить зависимости проекта:
 
 ```bash
-uv sync
+make sync
 ```
 
 ## Как поднять базу
@@ -33,7 +33,7 @@ cp .env.example .env
 Создать базу и схему (идемпотентно — повторный запуск не падает):
 
 ```bash
-uv run sound-loops init-db
+make init-db
 ```
 
 ## Куда класть лупы и музыку
@@ -64,12 +64,18 @@ uv run sound-loops init-db
 ## Команды
 
 ```bash
-uv run sound-loops init-db   # создать базу и схему (идемпотентно)
-uv run sound-loops ingest    # просканировать data/loops и data/raw,
-                              # заполнить таблицы, напечатать статистику
-uv run sound-loops render    # луп + случайный отрезок трека -> data/renders/*.mp4
-uv run sound-loops render --loop data/loops/my_loop.mp4  # конкретный луп
+make sync      # установить зависимости проекта
+make init-db   # создать базу и схему (идемпотентно)
+make ingest    # просканировать data/loops и data/raw,
+               # заполнить таблицы, напечатать статистику
+make render    # случайный луп + случайный отрезок трека -> data/renders/*.mp4
+make render-loop LOOP=data/loops/my_loop.mp4  # рендер для конкретного лупа
+make test      # прогнать тесты
+make lint      # прогнать линтер
+make clean     # удалить .venv и кэши тестов/линтера
 ```
+
+Каждая цель — тонкая обёртка над `uv run sound-loops ...` (см. `Makefile`).
 
 `render` печатает путь к получившемуся файлу и сохраняет запись о рендере
 в базу.
@@ -97,11 +103,6 @@ uv run sound-loops render --loop data/loops/my_loop.mp4  # конкретный 
 списками аргументов — команду легко скопировать и повторить в терминале.
 
 ## Тесты и линтер
-
-```bash
-make test
-make lint
-```
 
 Тесты не требуют базы, реальных лупов или датасета — для проверки
 `ffmpeg`-склейки используются синтетические видео/аудио, сгенерированные
