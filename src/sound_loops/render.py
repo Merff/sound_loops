@@ -8,6 +8,7 @@ start_seconds) сохраняются прямо в renders — отдельно
 
 from __future__ import annotations
 
+import random
 import tempfile
 import uuid
 from dataclasses import dataclass
@@ -18,11 +19,30 @@ import psycopg
 from sound_loops.config import Settings
 from sound_loops.ffmpeg_utils import extract_audio_segment, mux_loop_with_audio
 from sound_loops.ingest import ingest_loop_file
-from sound_loops.segments import pick_random_start
 
 
 class RenderError(RuntimeError):
     pass
+
+
+def pick_random_start(track_duration_seconds: float, needed_seconds: float) -> float:
+    """Случайная точка начала внутри трека, чтобы после неё хватило needed_seconds.
+
+    Трек должен быть не короче needed_seconds — это проверяется заранее
+    при выборе кандидата (get_random_track), здесь только защита от
+    неверного использования.
+    """
+    if needed_seconds <= 0:
+        raise ValueError("needed_seconds должно быть больше нуля")
+    if track_duration_seconds < needed_seconds:
+        raise ValueError(
+            f"трек короче нужного отрезка: {track_duration_seconds} < {needed_seconds}"
+        )
+
+    max_start = track_duration_seconds - needed_seconds
+    if max_start <= 0:
+        return 0.0
+    return random.uniform(0, max_start)
 
 
 @dataclass(frozen=True)
