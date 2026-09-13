@@ -1,7 +1,5 @@
 from pathlib import Path
 
-from conftest import make_silent_loop, make_tone_track
-
 from sound_loops.config import Settings
 from sound_loops.ffmpeg_utils import ProbeResult
 from sound_loops.ingest import (
@@ -74,8 +72,8 @@ def test_track_with_audio_is_accepted():
 # --- Интеграционные тесты с настоящей базой (db_conn/db_settings из conftest.py) ---
 
 
-def test_ingest_loop_file_inserts_new_row(db_conn, db_settings, tmp_path):
-    path = make_silent_loop(tmp_path / "loop.mp4", duration_seconds=5.0)
+def test_ingest_loop_file_inserts_new_row(db_conn, db_settings, get_silent_loop, tmp_path):
+    path = get_silent_loop(tmp_path / "loop.mp4", 5.0)
 
     loop_id, note = ingest_loop_file(db_conn, path, db_settings)
 
@@ -85,8 +83,8 @@ def test_ingest_loop_file_inserts_new_row(db_conn, db_settings, tmp_path):
     assert row == (str(path),)
 
 
-def test_ingest_loop_file_is_idempotent_on_path(db_conn, db_settings, tmp_path):
-    path = make_silent_loop(tmp_path / "loop.mp4", duration_seconds=5.0)
+def test_ingest_loop_file_is_idempotent_on_path(db_conn, db_settings, get_silent_loop, tmp_path):
+    path = get_silent_loop(tmp_path / "loop.mp4", 5.0)
 
     first_id, first_note = ingest_loop_file(db_conn, path, db_settings)
     second_id, second_note = ingest_loop_file(db_conn, path, db_settings)
@@ -98,8 +96,10 @@ def test_ingest_loop_file_is_idempotent_on_path(db_conn, db_settings, tmp_path):
     assert count == 1
 
 
-def test_ingest_loop_file_rejects_invalid_loop_without_inserting(db_conn, db_settings, tmp_path):
-    path = make_silent_loop(tmp_path / "too_long.mp4", duration_seconds=15.0)
+def test_ingest_loop_file_rejects_invalid_loop_without_inserting(
+    db_conn, db_settings, get_silent_loop, tmp_path
+):
+    path = get_silent_loop(tmp_path / "too_long.mp4", 15.0)
 
     loop_id, note = ingest_loop_file(db_conn, path, db_settings)
 
@@ -109,8 +109,8 @@ def test_ingest_loop_file_rejects_invalid_loop_without_inserting(db_conn, db_set
     assert count == 0
 
 
-def test_ingest_track_file_inserts_new_row_with_metadata(db_conn, tmp_path):
-    path = make_tone_track(tmp_path / "000042.mp3", duration_seconds=20.0)
+def test_ingest_track_file_inserts_new_row_with_metadata(db_conn, get_tone_track, tmp_path):
+    path = get_tone_track(tmp_path / "000042.mp3", 20.0)
     report = IngestReport()
 
     ingest_track_file(db_conn, path, metadata={42: TrackMetadata("T", "A", "G")}, report=report)
@@ -122,12 +122,14 @@ def test_ingest_track_file_inserts_new_row_with_metadata(db_conn, tmp_path):
     assert row == ("T", "A", "G")
 
 
-def test_scan_and_ingest_is_idempotent_end_to_end(db_conn, db_settings, tmp_path):
+def test_scan_and_ingest_is_idempotent_end_to_end(
+    db_conn, db_settings, get_silent_loop, get_tone_track, tmp_path
+):
     db_settings.loops_dir.mkdir(parents=True)
     db_settings.music_dir.mkdir(parents=True)
-    make_silent_loop(db_settings.loops_dir / "a.mp4", duration_seconds=4.0)
-    make_silent_loop(db_settings.loops_dir / "b.mp4", duration_seconds=6.0)
-    make_tone_track(db_settings.music_dir / "000001.mp3", duration_seconds=20.0)
+    get_silent_loop(db_settings.loops_dir / "a.mp4", 4.0)
+    get_silent_loop(db_settings.loops_dir / "b.mp4", 6.0)
+    get_tone_track(db_settings.music_dir / "000001.mp3", 20.0)
 
     first = ingest(db_conn, db_settings)
     assert first.loops_added == 2
