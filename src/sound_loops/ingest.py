@@ -13,7 +13,7 @@ from pathlib import Path
 import psycopg
 
 from sound_loops.config import Settings
-from sound_loops.ffmpeg_utils import FfmpegError, probe
+from sound_loops.ffmpeg_utils import FfmpegError, ProbeResult, probe
 from sound_loops.metadata import load_metadata
 
 logger = logging.getLogger(__name__)
@@ -44,6 +44,18 @@ class IngestReport:
             print(f"  пропущен {path}: {reason}")
 
 
+def loop_skip_reason(result: ProbeResult, settings: Settings) -> str | None:
+    """Проверить, годится ли пробированный файл в лупы. None — годится."""
+    if result.has_audio:
+        return "у лупа есть аудиодорожка, ожидался немой файл"
+    if not (settings.min_loop_seconds <= result.duration_seconds <= settings.max_loop_seconds):
+        return (
+            f"длительность {result.duration_seconds:.2f}с вне диапазона "
+            f"[{settings.min_loop_seconds}, {settings.max_loop_seconds}]"
+        )
+    return None
+
+
 def ingest_loop_file(
     conn: psycopg.Connection, path: Path, settings: Settings
 ) -> tuple[int | None, str | None]:
@@ -53,13 +65,9 @@ def ingest_loop_file(
     except FfmpegError as exc:
         return None, f"ffprobe не смог прочитать файл: {exc}"
 
-    if result.has_audio:
-        return None, "у лупа есть аудиодорожка, ожидался немой файл"
-    if not (settings.min_loop_seconds <= result.duration_seconds <= settings.max_loop_seconds):
-        return None, (
-            f"длительность {result.duration_seconds:.2f}с вне диапазона "
-            f"[{settings.min_loop_seconds}, {settings.max_loop_seconds}]"
-        )
+    reason = loop_skip_reason(result, settings)
+    if reason is not None:
+        return None, reason
 
     row = conn.execute(
         """
@@ -93,15 +101,29 @@ def scan_loops(conn: psycopg.Connection, settings: Settings, report: IngestRepor
             report.loops_added += 1
 
 
+def parse_fma_track_id(path: Path) -> int | None:
+    """Достать ID трека FMA из имени файла (например, 000002.mp3 -> 2)."""
+    try:
+        return int(path.stem)
+    except ValueError:
+        return None
+
+
+def track_skip_reason(result: ProbeResult) -> str | None:
+    """Проверить, годится ли пробированный файл в треки. None — годится."""
+    if not result.has_audio:
+        return "нет аудиодорожки"
+    return None
+
+
 def ingest_track_file(
     conn: psycopg.Connection,
     path: Path,
     metadata: dict,
     report: IngestReport,
 ) -> None:
-    try:
-        fma_track_id = int(path.stem)
-    except ValueError:
+    fma_track_id = parse_fma_track_id(path)
+    if fma_track_id is None:
         report.tracks_skipped.append((path, "имя файла не похоже на ID трека FMA"))
         return
 
@@ -111,8 +133,9 @@ def ingest_track_file(
         report.tracks_skipped.append((path, f"ffprobe не смог прочитать файл: {exc}"))
         return
 
-    if not result.has_audio:
-        report.tracks_skipped.append((path, "нет аудиодорожки"))
+    reason = track_skip_reason(result)
+    if reason is not None:
+        report.tracks_skipped.append((path, reason))
         return
 
     meta = metadata.get(fma_track_id)
