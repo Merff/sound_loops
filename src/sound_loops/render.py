@@ -1,8 +1,9 @@
 """Сборка превью: луп + случайный отрезок трека, подрезанный под его длительность.
 
 Кандидат на отрезок выбирается из tracks и вырезается на лету — заранее
-никакая сетка не считается. В track_segments попадает только то, что
-реально было использовано в рендере.
+никакая сетка не считается. Координаты использованного куска (track_id,
+start_seconds) сохраняются прямо в renders — отдельной таблицы под них
+не заводим, так как каждый отрезок используется ровно в одном рендере.
 """
 
 from __future__ import annotations
@@ -84,20 +85,6 @@ def get_random_track(conn: psycopg.Connection, min_duration_seconds: float) -> T
     return TrackRow(*row)
 
 
-def save_used_segment(conn: psycopg.Connection, track_id: int, start_seconds: float,
-                       duration_seconds: float) -> int:
-    """Сохранить реально вырезанный отрезок и вернуть его id."""
-    row = conn.execute(
-        """
-        INSERT INTO track_segments (track_id, start_seconds, duration_seconds)
-        VALUES (%s, %s, %s)
-        RETURNING id
-        """,
-        (track_id, start_seconds, duration_seconds),
-    ).fetchone()
-    return row[0]
-
-
 def render_once(
     conn: psycopg.Connection,
     settings: Settings,
@@ -126,13 +113,12 @@ def render_once(
     finally:
         tmp_audio_path.unlink(missing_ok=True)
 
-    segment_id = save_used_segment(conn, track.id, start_seconds, loop.duration_seconds)
     conn.execute(
         """
-        INSERT INTO renders (loop_id, track_segment_id, output_path, duration_seconds)
-        VALUES (%s, %s, %s, %s)
+        INSERT INTO renders (loop_id, track_id, start_seconds, output_path, duration_seconds)
+        VALUES (%s, %s, %s, %s, %s)
         """,
-        (loop.id, segment_id, str(output_path), loop.duration_seconds),
+        (loop.id, track.id, start_seconds, str(output_path), loop.duration_seconds),
     )
     conn.commit()
 

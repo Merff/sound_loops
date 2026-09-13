@@ -92,9 +92,9 @@ def test_get_loop_by_path_raises_for_invalid_loop(db_conn, db_settings, tmp_path
         get_loop_by_path(db_conn, too_long, db_settings)
 
 
-def test_render_once_produces_valid_mp4_and_db_rows(db_conn, db_settings, tmp_path):
-    _insert_loop(db_conn, db_settings, tmp_path, "loop.mp4", duration=5.0)
-    _insert_track(db_conn, tmp_path, 3, duration=20.0)
+def test_render_once_produces_valid_mp4_and_db_row(db_conn, db_settings, tmp_path):
+    loop_id = _insert_loop(db_conn, db_settings, tmp_path, "loop.mp4", duration=5.0)
+    track_id = _insert_track(db_conn, tmp_path, 3, duration=20.0)
     db_conn.commit()
 
     output_path = render_once(db_conn, db_settings)
@@ -105,14 +105,20 @@ def test_render_once_produces_valid_mp4_and_db_rows(db_conn, db_settings, tmp_pa
     assert result.has_audio
     assert result.duration_seconds == pytest.approx(5.0, abs=0.2)
 
-    renders = db_conn.execute("SELECT count(*) FROM renders").fetchone()[0]
-    segments = db_conn.execute("SELECT count(*) FROM track_segments").fetchone()[0]
-    assert renders == 1
-    assert segments == 1
+    row = db_conn.execute(
+        "SELECT loop_id, track_id, start_seconds, output_path, duration_seconds FROM renders"
+    ).fetchone()
+    assert row is not None
+    got_loop_id, got_track_id, start_seconds, output_path_in_db, duration_seconds = row
+    assert got_loop_id == loop_id
+    assert got_track_id == track_id
+    assert 0.0 <= start_seconds <= 20.0 - 5.0
+    assert output_path_in_db == str(output_path)
+    assert duration_seconds == pytest.approx(5.0, abs=0.2)
 
 
-def test_render_ten_times_yields_one_segment_per_render(db_conn, db_settings, tmp_path):
-    """То же, что раньше проверялось вручную: 10 рендеров подряд, без сирот в track_segments."""
+def test_render_ten_times_yields_one_render_row_each_time(db_conn, db_settings, tmp_path):
+    """То же, что раньше проверялось вручную: 10 рендеров подряд, каждый — новая строка."""
     _insert_loop(db_conn, db_settings, tmp_path, "loop.mp4", duration=4.0)
     _insert_track(db_conn, tmp_path, 4, duration=25.0)
     db_conn.commit()
@@ -124,10 +130,4 @@ def test_render_ten_times_yields_one_segment_per_render(db_conn, db_settings, tm
         assert result.duration_seconds == pytest.approx(4.0, abs=0.2)
 
     renders = db_conn.execute("SELECT count(*) FROM renders").fetchone()[0]
-    segments = db_conn.execute("SELECT count(*) FROM track_segments").fetchone()[0]
-    used_segments = db_conn.execute(
-        "SELECT count(DISTINCT track_segment_id) FROM renders"
-    ).fetchone()[0]
     assert renders == 10
-    assert segments == 10
-    assert used_segments == 10

@@ -80,9 +80,7 @@ def test_database_url() -> str:
 def db_conn(test_database_url: str):
     """Соединение с чистой тестовой базой — таблицы очищены перед каждым тестом."""
     with psycopg.connect(test_database_url, autocommit=True) as setup_conn:
-        setup_conn.execute(
-            "TRUNCATE loops, tracks, track_segments, renders RESTART IDENTITY CASCADE"
-        )
+        setup_conn.execute("TRUNCATE loops, tracks, renders RESTART IDENTITY CASCADE")
 
     with psycopg.connect(test_database_url) as conn:
         yield conn

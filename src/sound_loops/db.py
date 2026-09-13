@@ -29,29 +29,41 @@ CREATE TABLE IF NOT EXISTS tracks (
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- Отрезок трека, реально вырезанный для какого-то рендера (не сетка
--- кандидатов заранее — start_seconds непрерывный случайный, дублей
--- по сути не бывает, поэтому уникальности на (track_id, start_seconds)
--- больше нет).
-CREATE TABLE IF NOT EXISTS track_segments (
-    id SERIAL PRIMARY KEY,
-    track_id INTEGER NOT NULL REFERENCES tracks(id) ON DELETE CASCADE,
-    start_seconds DOUBLE PRECISION NOT NULL,
-    duration_seconds DOUBLE PRECISION NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
--- На случай апгрейда базы, где ограничение ещё осталось с прошлой схемы.
-ALTER TABLE track_segments DROP CONSTRAINT IF EXISTS track_segments_track_id_start_seconds_key;
-
+-- Координаты использованного отрезка (track_id, start_seconds) хранятся
+-- прямо здесь, а не в отдельной таблице: каждый отрезок вырезается на
+-- лету и используется ровно в одном рендере, отдельная таблица под
+-- него была бы join на пустом месте.
 CREATE TABLE IF NOT EXISTS renders (
     id SERIAL PRIMARY KEY,
     loop_id INTEGER NOT NULL REFERENCES loops(id),
-    track_segment_id INTEGER NOT NULL REFERENCES track_segments(id),
+    track_id INTEGER NOT NULL REFERENCES tracks(id),
+    start_seconds DOUBLE PRECISION NOT NULL,
     output_path TEXT NOT NULL,
     duration_seconds DOUBLE PRECISION NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Миграция со старой схемы, где у renders была ссылка на отдельную
+-- таблицу track_segments. Идемпотентно: на новых базах renders уже
+-- создаётся без track_segment_id, и блок ничего не делает.
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'renders' AND column_name = 'track_segment_id'
+    ) THEN
+        ALTER TABLE renders ADD COLUMN IF NOT EXISTS track_id INTEGER REFERENCES tracks(id);
+        ALTER TABLE renders ADD COLUMN IF NOT EXISTS start_seconds DOUBLE PRECISION;
+        UPDATE renders r
+        SET track_id = ts.track_id, start_seconds = ts.start_seconds
+        FROM track_segments ts
+        WHERE ts.id = r.track_segment_id AND r.track_id IS NULL;
+        ALTER TABLE renders ALTER COLUMN track_id SET NOT NULL;
+        ALTER TABLE renders ALTER COLUMN start_seconds SET NOT NULL;
+        ALTER TABLE renders DROP COLUMN track_segment_id;
+        DROP TABLE IF EXISTS track_segments;
+    END IF;
+END $$;
 """
 
 
