@@ -1,34 +1,25 @@
-"""Разбиение трека на отрезки по сетке фиксированной длины."""
+"""Выбор случайной позиции отрезка внутри трека нужной длины."""
 
 from __future__ import annotations
 
+import random
 
-def compute_segment_grid(
-    duration_seconds: float,
-    segment_seconds: float,
-    min_segment_seconds: float = 1.0,
-) -> list[tuple[float, float]]:
-    """Построить сетку отрезков (start, duration) для трека заданной длины.
 
-    - Трек короче одного отрезка сетки целиком становится одним отрезком.
-    - Трек режется на отрезки длиной segment_seconds; хвост короче
-      min_segment_seconds отбрасывается, иначе добавляется отдельным
-      более коротким отрезком.
+def pick_random_start(track_duration_seconds: float, needed_seconds: float) -> float:
+    """Случайная точка начала внутри трека, чтобы после неё хватило needed_seconds.
+
+    Трек должен быть не короче needed_seconds — это проверяется заранее
+    при выборе кандидата (render.get_random_track), здесь только защита
+    от неверного использования.
     """
-    if duration_seconds <= 0 or segment_seconds <= 0:
-        return []
+    if needed_seconds <= 0:
+        raise ValueError("needed_seconds должно быть больше нуля")
+    if track_duration_seconds < needed_seconds:
+        raise ValueError(
+            f"трек короче нужного отрезка: {track_duration_seconds} < {needed_seconds}"
+        )
 
-    if duration_seconds <= segment_seconds:
-        return [(0.0, duration_seconds)]
-
-    segments: list[tuple[float, float]] = []
-    start = 0.0
-    while start + segment_seconds <= duration_seconds:
-        segments.append((start, segment_seconds))
-        start += segment_seconds
-
-    remainder = duration_seconds - start
-    if remainder >= min_segment_seconds:
-        segments.append((start, remainder))
-
-    return segments
+    max_start = track_duration_seconds - needed_seconds
+    if max_start <= 0:
+        return 0.0
+    return random.uniform(0, max_start)

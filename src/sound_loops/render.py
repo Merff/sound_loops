@@ -1,4 +1,9 @@
-"""Сборка превью: луп + случайный отрезок трека, подрезанный под его длительность."""
+"""Сборка превью: луп + случайный отрезок трека, подрезанный под его длительность.
+
+Кандидат на отрезок выбирается из tracks и вырезается на лету — заранее
+никакая сетка не считается. В track_segments попадает только то, что
+реально было использовано в рендере.
+"""
 
 from __future__ import annotations
 
@@ -12,6 +17,7 @@ import psycopg
 from sound_loops.config import Settings
 from sound_loops.ffmpeg_utils import extract_audio_segment, mux_loop_with_audio
 from sound_loops.ingest import ingest_loop_file
+from sound_loops.segments import pick_random_start
 
 
 class RenderError(RuntimeError):
@@ -26,10 +32,9 @@ class LoopRow:
 
 
 @dataclass(frozen=True)
-class SegmentRow:
+class TrackRow:
     id: int
-    track_path: str
-    start_seconds: float
+    path: str
     duration_seconds: float
 
 
@@ -60,14 +65,13 @@ def get_random_loop(conn: psycopg.Connection) -> LoopRow:
     return LoopRow(*row)
 
 
-def get_random_segment(conn: psycopg.Connection, min_duration_seconds: float) -> SegmentRow:
-    """Взять случайный отрезок, которого хватит на всю длительность лупа."""
+def get_random_track(conn: psycopg.Connection, min_duration_seconds: float) -> TrackRow:
+    """Взять случайный трек, которого хватит на всю длительность лупа."""
     row = conn.execute(
         """
-        SELECT ts.id, t.path, ts.start_seconds, ts.duration_seconds
-        FROM track_segments ts
-        JOIN tracks t ON t.id = ts.track_id
-        WHERE ts.duration_seconds >= %s
+        SELECT id, path, duration_seconds
+        FROM tracks
+        WHERE duration_seconds >= %s
         ORDER BY random()
         LIMIT 1
         """,
@@ -75,10 +79,23 @@ def get_random_segment(conn: psycopg.Connection, min_duration_seconds: float) ->
     ).fetchone()
     if row is None:
         raise RenderError(
-            "в базе нет отрезков достаточной длины — сначала запустите ingest "
-            "и проверьте настройки сетки отрезков"
+            "в базе нет треков достаточной длины — сначала запустите ingest"
         )
-    return SegmentRow(*row)
+    return TrackRow(*row)
+
+
+def save_used_segment(conn: psycopg.Connection, track_id: int, start_seconds: float,
+                       duration_seconds: float) -> int:
+    """Сохранить реально вырезанный отрезок и вернуть его id."""
+    row = conn.execute(
+        """
+        INSERT INTO track_segments (track_id, start_seconds, duration_seconds)
+        VALUES (%s, %s, %s)
+        RETURNING id
+        """,
+        (track_id, start_seconds, duration_seconds),
+    ).fetchone()
+    return row[0]
 
 
 def render_once(
@@ -88,7 +105,8 @@ def render_once(
 ) -> Path:
     """Собрать одно превью: луп + случайный отрезок трека под его длительность."""
     loop = get_loop_by_path(conn, loop_path, settings) if loop_path else get_random_loop(conn)
-    segment = get_random_segment(conn, loop.duration_seconds)
+    track = get_random_track(conn, loop.duration_seconds)
+    start_seconds = pick_random_start(track.duration_seconds, loop.duration_seconds)
 
     settings.output_dir.mkdir(parents=True, exist_ok=True)
     output_name = f"{Path(loop.path).stem}_{uuid.uuid4().hex[:8]}.mp4"
@@ -98,8 +116,8 @@ def render_once(
         tmp_audio_path = Path(tmp.name)
     try:
         extract_audio_segment(
-            track_path=Path(segment.track_path),
-            start_seconds=segment.start_seconds,
+            track_path=Path(track.path),
+            start_seconds=start_seconds,
             duration_seconds=loop.duration_seconds,
             fade_seconds=settings.fade_seconds,
             output_path=tmp_audio_path,
@@ -108,12 +126,13 @@ def render_once(
     finally:
         tmp_audio_path.unlink(missing_ok=True)
 
+    segment_id = save_used_segment(conn, track.id, start_seconds, loop.duration_seconds)
     conn.execute(
         """
         INSERT INTO renders (loop_id, track_segment_id, output_path, duration_seconds)
         VALUES (%s, %s, %s, %s)
         """,
-        (loop.id, segment.id, str(output_path), loop.duration_seconds),
+        (loop.id, segment_id, str(output_path), loop.duration_seconds),
     )
     conn.commit()
 

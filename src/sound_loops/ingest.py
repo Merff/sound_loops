@@ -15,7 +15,6 @@ import psycopg
 from sound_loops.config import Settings
 from sound_loops.ffmpeg_utils import FfmpegError, probe
 from sound_loops.metadata import load_metadata
-from sound_loops.segments import compute_segment_grid
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +27,6 @@ class IngestReport:
     tracks_added: int = 0
     tracks_updated: int = 0
     tracks_skipped: list[tuple[Path, str]] = field(default_factory=list)
-    segments_created: int = 0
 
     def print_summary(self) -> None:
         print(
@@ -44,8 +42,6 @@ class IngestReport:
         )
         for path, reason in self.tracks_skipped:
             print(f"  пропущен {path}: {reason}")
-
-        print(f"Отрезков создано: {self.segments_created}")
 
 
 def ingest_loop_file(
@@ -100,7 +96,6 @@ def scan_loops(conn: psycopg.Connection, settings: Settings, report: IngestRepor
 def ingest_track_file(
     conn: psycopg.Connection,
     path: Path,
-    settings: Settings,
     metadata: dict,
     report: IngestReport,
 ) -> None:
@@ -139,27 +134,11 @@ def ingest_track_file(
         """,
         (str(path), result.duration_seconds, fma_track_id, title, artist, genre),
     ).fetchone()
-    track_id, inserted = row
+    _track_id, inserted = row
     if inserted:
         report.tracks_added += 1
     else:
         report.tracks_updated += 1
-
-    grid = compute_segment_grid(
-        result.duration_seconds, settings.segment_seconds, settings.min_segment_seconds
-    )
-    for start, duration in grid:
-        seg_row = conn.execute(
-            """
-            INSERT INTO track_segments (track_id, start_seconds, duration_seconds)
-            VALUES (%s, %s, %s)
-            ON CONFLICT (track_id, start_seconds) DO NOTHING
-            RETURNING id
-            """,
-            (track_id, start, duration),
-        ).fetchone()
-        if seg_row is not None:
-            report.segments_created += 1
 
     conn.commit()
 
@@ -172,7 +151,7 @@ def scan_tracks(conn: psycopg.Connection, settings: Settings, report: IngestRepo
     metadata = load_metadata(settings.metadata_csv)
 
     for path in sorted(settings.music_dir.rglob("*.mp3")):
-        ingest_track_file(conn, path, settings, metadata, report)
+        ingest_track_file(conn, path, metadata, report)
 
 
 def ingest(conn: psycopg.Connection, settings: Settings) -> IngestReport:

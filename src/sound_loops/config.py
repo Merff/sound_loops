@@ -24,12 +24,9 @@ class Settings(BaseSettings):
     min_loop_seconds: float = 3.0
     max_loop_seconds: float = 10.0
 
-    segment_seconds: float = 10.0
-    min_segment_seconds: float = 1.0
-
     fade_seconds: float = 0.3
 
-    @field_validator("segment_seconds", "min_segment_seconds", "fade_seconds")
+    @field_validator("fade_seconds")
     @classmethod
     def _must_be_positive(cls, v: float) -> float:
         if v <= 0:

@@ -29,14 +29,20 @@ CREATE TABLE IF NOT EXISTS tracks (
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Отрезок трека, реально вырезанный для какого-то рендера (не сетка
+-- кандидатов заранее — start_seconds непрерывный случайный, дублей
+-- по сути не бывает, поэтому уникальности на (track_id, start_seconds)
+-- больше нет).
 CREATE TABLE IF NOT EXISTS track_segments (
     id SERIAL PRIMARY KEY,
     track_id INTEGER NOT NULL REFERENCES tracks(id) ON DELETE CASCADE,
     start_seconds DOUBLE PRECISION NOT NULL,
     duration_seconds DOUBLE PRECISION NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    UNIQUE (track_id, start_seconds)
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- На случай апгрейда базы, где ограничение ещё осталось с прошлой схемы.
+ALTER TABLE track_segments DROP CONSTRAINT IF EXISTS track_segments_track_id_start_seconds_key;
 
 CREATE TABLE IF NOT EXISTS renders (
     id SERIAL PRIMARY KEY,
