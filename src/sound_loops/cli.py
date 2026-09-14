@@ -78,19 +78,15 @@ def index_cmd(batch_size: int | None, limit: int | None) -> None:
 
 @cli.command("search")
 @click.argument("query")
-@click.option("--top", "top_n", type=int, default=10, help="Сколько треков вывести.")
+@click.option("--top", "top_n", type=int, default=5, help="Сколько треков вывести.")
 @click.option(
     "--export-dir",
     type=click.Path(file_okay=False, path_type=Path),
     default=None,
     help="Скопировать найденные треки в эту папку.",
 )
-@click.option("--open", "open_player", is_flag=True, help="Открыть экспортированные треки системным плеером (macOS).")
-def search_cmd(query: str, top_n: int, export_dir: Path | None, open_player: bool) -> None:
+def search_cmd(query: str, top_n: int, export_dir: Path | None) -> None:
     """Найти треки, наиболее похожие на текстовое описание QUERY."""
-    if open_player and export_dir is None:
-        raise click.UsageError("--open работает только вместе с --export-dir")
-
     settings = load_settings()
 
     from sound_loops.hf_cache import ensure_offline_if_cached
@@ -98,7 +94,7 @@ def search_cmd(query: str, top_n: int, export_dir: Path | None, open_player: boo
     ensure_offline_if_cached(settings.clap_checkpoint)
 
     from sound_loops.clap import ClapEmbedder
-    from sound_loops.search import export_results, open_with_player, search_tracks
+    from sound_loops.search import export_results, search_tracks
 
     embedder = ClapEmbedder(settings.clap_checkpoint, settings.clap_device)
     with connect(settings.database_url) as conn:
@@ -109,10 +105,8 @@ def search_cmd(query: str, top_n: int, export_dir: Path | None, open_player: boo
         click.echo(f"{rank:2d}. {r.similarity:.3f}  {title} — {r.artist or '?'}  [{r.path}]")
 
     if export_dir is not None:
-        exported = export_results(results, export_dir)
+        export_results(results, export_dir)
         click.echo(f"Экспортировано в {export_dir}")
-        if open_player:
-            open_with_player(exported)
 
 
 @cli.command("clap-check")

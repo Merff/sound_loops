@@ -34,7 +34,7 @@ search:
 		echo "Укажи QUERY=\"текстовое описание\", например: make search QUERY=\"sad piano\""; \
 		exit 1; \
 	fi
-	uv run sound-loops search "$(QUERY)" $(if $(EXPORT),--export-dir $(EXPORT) --open,)
+	uv run sound-loops search "$(QUERY)" $(if $(EXPORT),--export-dir $(EXPORT),)
 
 # Проверка вменяемости: текстовая башня CLAP не должна быть схлопнута
 clap-check:

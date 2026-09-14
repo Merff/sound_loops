@@ -2,15 +2,13 @@
 
 Оценка похожести — косинусная (1 - оператор <=> из vector_cosine_ops,
 тот же индекс, что построен в миграции 0002). Прослушивание — отдельным
-шагом: экспорт топ-N в папку и, опционально, открытие системным плеером
-(macOS `open`) — числа сами по себе не говорят, что модель считает
-«грустным» или «эпичным», это можно только услышать.
+шагом: экспорт топ-N в папку — числа сами по себе не говорят, что модель
+считает «грустным» или «эпичным», это можно только услышать.
 """
 
 from __future__ import annotations
 
 import shutil
-import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -70,8 +68,3 @@ def export_results(results: list[SearchResult], export_dir: Path) -> list[Path]:
         shutil.copyfile(src, dest)
         exported.append(dest)
     return exported
-
-
-def open_with_player(paths: list[Path]) -> None:
-    """Открыть файлы системным плеером через macOS `open`."""
-    subprocess.run(["open", *[str(p) for p in paths]], check=True)
