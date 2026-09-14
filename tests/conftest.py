@@ -17,9 +17,11 @@
 from __future__ import annotations
 
 import shutil
+import zlib
 from pathlib import Path
 from urllib.parse import urlsplit, urlunsplit
 
+import numpy as np
 import psycopg
 import pytest
 
@@ -110,6 +112,37 @@ def silent_loop(tmp_path: Path, get_silent_loop) -> Path:
 @pytest.fixture
 def tone_track(tmp_path: Path, get_tone_track) -> Path:
     return get_tone_track(tmp_path / "track.mp3", 12.0)
+
+
+class FakeEmbedder:
+    """Детерминированный эмбеддер вместо настоящей CLAP: без загрузки модели и сети.
+
+    dim = 512 — как у vector(512) в схеме, чтобы писать в ту же колонку, что
+    и настоящие эмбеддинги. Вектор зависит только от входа (хэш текста или
+    контрольная сумма PCM), так что повторный вызов с тем же входом даёт тот
+    же результат — этого достаточно, чтобы проверять индексацию/поиск как
+    работу с базой, не трогая саму модель (её проверяют clap-check и ручное
+    прослушивание, см. docs/sound_loops-iteration-1.md).
+    """
+
+    model_id = "fake-embedder-v1"
+    sample_rate = 8000
+    dim = 512
+
+    def embed_texts(self, texts):
+        return np.stack([self._vector_for(text.encode()) for text in texts])
+
+    def embed_audio(self, waveforms):
+        return np.stack([self._vector_for(np.asarray(w).tobytes()) for w in waveforms])
+
+    def _vector_for(self, key: bytes) -> np.ndarray:
+        rng = np.random.default_rng(zlib.crc32(key))
+        return rng.normal(size=self.dim).astype(np.float32)
+
+
+@pytest.fixture
+def fake_embedder() -> FakeEmbedder:
+    return FakeEmbedder()
 
 
 def _derive_test_database_url() -> str:

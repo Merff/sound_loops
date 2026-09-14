@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from sound_loops.ffmpeg_utils import extract_audio_segment, mux_loop_with_audio, probe
+from sound_loops.ffmpeg_utils import decode_audio_mono, extract_audio_segment, mux_loop_with_audio, probe
 
 DURATION_TOLERANCE = 0.2
 
@@ -62,3 +62,13 @@ def test_mux_trims_audio_longer_than_loop(silent_loop: Path, tone_track: Path, t
 
     result = probe(output)
     assert abs(result.duration_seconds - loop_info.duration_seconds) < DURATION_TOLERANCE
+
+
+def test_decode_audio_mono_returns_expected_sample_count(tone_track: Path):
+    sample_rate = 16000
+    waveform = decode_audio_mono(tone_track, sample_rate)
+
+    track_duration = probe(tone_track).duration_seconds
+    expected_samples = track_duration * sample_rate
+    assert abs(len(waveform) - expected_samples) < sample_rate * DURATION_TOLERANCE
+    assert waveform.dtype.name == "float32"

@@ -82,7 +82,7 @@
 - Для `ingest_track_file`/`parse_fma_track_id` имя файла-трека **обязано
   быть числовым** (например `000042.mp3`) — так достаётся ID трека FMA;
   файл с нечисловым именем будет тихо пропущен как "не похож на ID".
-- Команда: `make test` (= `uv run pytest`). Полный прогон ~3.5с.
+- Команда: `make test` (= `uv run pytest`).
 - Чистые функции без побочных эффектов (`pick_random_start`,
   `loop_skip_reason`/`track_skip_reason`/`parse_fma_track_id` из
   `ingest.py`, разбор `tracks.csv`, валидация `Settings`) тестируются

@@ -11,6 +11,8 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
+import numpy as np
+
 
 class FfmpegError(RuntimeError):
     """Бинарь ffmpeg/ffprobe завершился с ошибкой."""
@@ -109,6 +111,26 @@ def extract_audio_segment(
         str(output_path),
     ]
     run(cmd)
+
+
+def decode_audio_mono(path: Path, sample_rate: int) -> np.ndarray:
+    """Декодировать аудиодорожку в моно float32 PCM заданной частоты дискретизации."""
+    cmd = [
+        "ffmpeg", "-v", "error",
+        "-i", str(path),
+        "-ac", "1",
+        "-ar", str(sample_rate),
+        "-f", "f32le",
+        "-",
+    ]
+    result = subprocess.run(cmd, capture_output=True)
+    if result.returncode != 0:
+        pretty_cmd = " ".join(cmd)
+        stderr = result.stderr.decode(errors="replace").strip()
+        raise FfmpegError(
+            f"команда завершилась с кодом {result.returncode}: {pretty_cmd}\n{stderr}"
+        )
+    return np.frombuffer(result.stdout, dtype=np.float32)
 
 
 def mux_loop_with_audio(loop_path: Path, audio_path: Path, output_path: Path) -> None:

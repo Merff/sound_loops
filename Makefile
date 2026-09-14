@@ -1,4 +1,4 @@
-.PHONY: sync init-db ingest render render-loop test lint clean
+.PHONY: sync init-db ingest render render-loop index search clap-check test lint clean
 
 # Установить зависимости проекта
 sync:
@@ -23,6 +23,22 @@ render-loop:
 		exit 1; \
 	fi
 	uv run sound-loops render --loop $(LOOP)
+
+# Посчитать эмбеддинги треков, у которых их ещё нет (CLAP)
+index:
+	uv run sound-loops index
+
+# Найти треки по текстовому описанию: make search QUERY="sad piano" [EXPORT=data/found]
+search:
+	@if [ -z "$(QUERY)" ]; then \
+		echo "Укажи QUERY=\"текстовое описание\", например: make search QUERY=\"sad piano\""; \
+		exit 1; \
+	fi
+	uv run sound-loops search "$(QUERY)" $(if $(EXPORT),--export-dir $(EXPORT) --open,)
+
+# Проверка вменяемости: текстовая башня CLAP не должна быть схлопнута
+clap-check:
+	uv run sound-loops clap-check
 
 # Прогнать тесты
 test:

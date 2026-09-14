@@ -26,6 +26,10 @@ class Settings(BaseSettings):
 
     fade_seconds: float = 0.3
 
+    clap_checkpoint: str = "laion/larger_clap_general"
+    clap_device: str = "mps"
+    embedding_batch_size: int = 8
+
     @field_validator("fade_seconds")
     @classmethod
     def _must_be_positive(cls, v: float) -> float:
