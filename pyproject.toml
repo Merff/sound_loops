@@ -5,6 +5,8 @@ description = "Подбор звука для немых видео-лупов: 
 requires-python = ">=3.12"
 dependencies = [
     "click>=8.1",
+    "langchain-core>=0.3",
+    "langchain-ollama>=0.3",
     "numpy>=2.0",
     "pgvector>=0.3",
     "psycopg[binary]>=3.2",

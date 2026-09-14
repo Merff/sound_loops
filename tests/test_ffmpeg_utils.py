@@ -1,6 +1,12 @@
 from pathlib import Path
 
-from sound_loops.ffmpeg_utils import decode_audio_mono, extract_audio_segment, mux_loop_with_audio, probe
+from sound_loops.ffmpeg_utils import (
+    decode_audio_mono,
+    extract_audio_segment,
+    extract_frames,
+    mux_loop_with_audio,
+    probe,
+)
 
 DURATION_TOLERANCE = 0.2
 
@@ -62,6 +68,33 @@ def test_mux_trims_audio_longer_than_loop(silent_loop: Path, tone_track: Path, t
 
     result = probe(output)
     assert abs(result.duration_seconds - loop_info.duration_seconds) < DURATION_TOLERANCE
+
+
+def test_extract_frames_returns_requested_count_of_valid_jpegs(silent_loop: Path):
+    loop_info = probe(silent_loop)
+
+    frames = extract_frames(silent_loop, loop_info.duration_seconds, count=4, max_side=448)
+
+    assert len(frames) == 4
+    for frame in frames:
+        assert frame.startswith(b"\xff\xd8")  # JPEG SOI marker
+
+
+def test_extract_frames_downscales_to_max_side(silent_loop: Path, tmp_path: Path):
+    import subprocess
+
+    loop_info = probe(silent_loop)
+    frames = extract_frames(silent_loop, loop_info.duration_seconds, count=1, max_side=100)
+
+    frame_path = tmp_path / "frame.jpg"
+    frame_path.write_bytes(frames[0])
+    identify = subprocess.run(
+        ["ffprobe", "-v", "error", "-show_entries", "stream=width,height", "-of", "csv=p=0", str(frame_path)],
+        capture_output=True,
+        text=True,
+    )
+    width, height = (int(v) for v in identify.stdout.strip().split(","))
+    assert max(width, height) <= 100
 
 
 def test_decode_audio_mono_returns_expected_sample_count(tone_track: Path):

@@ -133,6 +133,46 @@ def decode_audio_mono(path: Path, sample_rate: int) -> np.ndarray:
     return np.frombuffer(result.stdout, dtype=np.float32)
 
 
+def extract_frames(
+    loop_path: Path,
+    duration_seconds: float,
+    count: int,
+    max_side: int,
+) -> list[bytes]:
+    """count кадров, равномерно по длительности лупа, JPEG-байты в памяти.
+
+    Кадры берутся из середин count равных отрезков — не из точных 0 и
+    duration_seconds, чтобы не упереться в последний неполный кадр на
+    границе файла. Уменьшение до max_side по длинной стороне сокращает
+    число визуальных токенов на шаге VLM (см. docs/sound_loops-iteration-2.md).
+    Один вызов ffmpeg на кадр — вместо одной команды с fps-фильтром,
+    чтобы результат был проще прочитать из stdout, не разбирая склеенный
+    JPEG-поток по маркерам.
+    """
+    frames = []
+    for i in range(count):
+        timestamp = (i + 0.5) * duration_seconds / count
+        cmd = [
+            "ffmpeg", "-v", "error",
+            "-ss", f"{timestamp:.3f}",
+            "-i", str(loop_path),
+            "-frames:v", "1",
+            "-vf", f"scale='min({max_side},iw)':'min({max_side},ih)':force_original_aspect_ratio=decrease",
+            "-f", "image2pipe",
+            "-vcodec", "mjpeg",
+            "-",
+        ]
+        result = subprocess.run(cmd, capture_output=True)
+        if result.returncode != 0:
+            pretty_cmd = " ".join(cmd)
+            stderr = result.stderr.decode(errors="replace").strip()
+            raise FfmpegError(
+                f"команда завершилась с кодом {result.returncode}: {pretty_cmd}\n{stderr}"
+            )
+        frames.append(result.stdout)
+    return frames
+
+
 def mux_loop_with_audio(loop_path: Path, audio_path: Path, output_path: Path) -> None:
     """Склеить немой видео-луп с готовым аудио без перекодирования видео.
 

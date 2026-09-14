@@ -16,17 +16,28 @@
 
 Пет-проект: подбор музыки к немым коротким видео-лупам. Финальная цель —
 агент, который анализирует видео и подбирает трек по смыслу/настроению;
-до неё несколько итераций. Итерация 0 (см. [docs/sound_loops-iteration-0.md](docs/sound_loops-iteration-0.md)
-— описание итерации, актуализировано под то, что по факту построено)
-построила только транспорт: CLI, который берёт немой видео-луп и
-случайный трек, ffmpeg склеивает их в mp4.
+до неё несколько итераций.
+
+- Итерация 0 (см. [docs/sound_loops-iteration-0.md](docs/sound_loops-iteration-0.md)
+  — актуализировано под то, что по факту построено) построила только
+  транспорт: CLI, который берёт немой видео-луп и случайный трек, ffmpeg
+  склеивает их в mp4.
+- Итерация 1 (план: [docs/sound_loops-iteration-1.md](docs/sound_loops-iteration-1.md))
+  добавила смысл в выбор музыки: треки индексируются CLAP-эмбеддингами в
+  pgvector, поиск — по текстовому описанию.
+- Итерация 2 (план: [docs/sound_loops-iteration-2.md](docs/sound_loops-iteration-2.md))
+  замкнула цепочку: запрос для поиска формулирует не человек, а VLM,
+  посмотрев на кадры лупа.
 
 ## Как всё устроено (актуально, а не по брифу)
 
-- **CLI**: `click`, три команды — `init-db`, `ingest`, `render [--loop PATH]`
-  ([cli.py](src/sound_loops/cli.py)). Через `make` см. `Makefile`
-  (`sync`, `init-db`, `ingest`, `render`, `render-loop LOOP=...`, `test`,
-  `lint`, `clean`).
+- **CLI**: `click`, команды — `init-db`, `ingest`, `render [--loop PATH]`
+  (случайный трек, итерация 0), `index`, `search QUERY [--top N]
+  [--export-dir DIR]`, `match [--loop PATH]` (VLM-подбор, итерация 2),
+  `clap-check` ([cli.py](src/sound_loops/cli.py)). Через `make` см.
+  `Makefile` (`sync`, `init-db`, `ingest`, `render`, `render-loop LOOP=...`,
+  `index`, `search QUERY=...`, `match`, `match-loop LOOP=...`, `clap-check`,
+  `test`, `lint`, `clean`).
 - **Конфиг**: `pydantic-settings`, читает `.env` ([config.py](src/sound_loops/config.py)).
 - **БД**: Postgres, драйвер `psycopg` v3 (не psycopg2), без ORM — везде
   сырой SQL через `conn.execute(...)`. Схема управляется
@@ -36,14 +47,18 @@
   **yoyo с psycopg3 требует схему URL `postgresql+psycopg://`**, а не
   `postgresql://` — это не в её документации на видном месте,
   `db.py::_yoyo_url` делает подмену автоматически.
-- **Три таблицы**: `loops`, `tracks`, `renders`. Никакой отдельной
-  таблицы под отрезки треков нет — `renders` сразу хранит `track_id` +
-  `start_seconds` (координаты вырезанного куска), потому что отрезок
-  всегда вырезается на лету и используется ровно в одном рендере;
-  отдельная таблица была бы join на пустом месте. Если это звучит
-  странно — так и было: сначала была `track_segments` (сначала как
-  сетка кандидатов при ингесте, потом как 1:1 с рендером), обе версии
-  снесены по ходу правок.
+- **Четыре таблицы**: `loops`, `tracks`, `renders`, `video_analyses`.
+  Никакой отдельной таблицы под отрезки треков нет — `renders` сразу
+  хранит `track_id` + `start_seconds` (координаты вырезанного куска),
+  потому что отрезок всегда вырезается на лету и используется ровно в
+  одном рендере; отдельная таблица была бы join на пустом месте. Если
+  это звучит странно — так и было: сначала была `track_segments`
+  (сначала как сетка кандидатов при ингесте, потом как 1:1 с рендером),
+  обе версии снесены по ходу правок. `tracks` дополнительно несёт
+  `embedding`/`embedding_model` (CLAP, итерация 1). `renders` несёт
+  `analysis_id`/`music_query` (итерация 2) — `analysis_id IS NOT NULL`
+  и есть признак, что рендер сделан VLM-цепочкой, а не случайным
+  baseline'ом, отдельного поля "способ подбора" не заводили.
 - **ffmpeg/ffprobe**: только через `subprocess`, без питоновских
   обёрток — команды остаются копируемыми в терминал
   ([ffmpeg_utils.py](src/sound_loops/ffmpeg_utils.py)). Тот же принцип
@@ -59,6 +74,32 @@
   в [metadata.py](src/sound_loops/metadata.py) читает первые две как
   `header=[0,1]`-эквивалент, а любую ошибку разбора тихо проглатывает —
   метаданные не критичны, пустые поля это не баг.
+- **CLAP** ([clap.py](src/sound_loops/clap.py)): `laion/larger_clap_general`
+  через `transformers`, текст и аудио в одном 512-мерном пространстве.
+  `index` считает эмбеддинги треков (пропускает уже посчитанные тем же
+  чекпоинтом — [index.py](src/sound_loops/index.py)), `search` ищет по
+  косинусной близости через `pgvector`/HNSW
+  ([search.py](src/sound_loops/search.py)). `Embedder` — Protocol
+  ([embeddings.py](src/sound_loops/embeddings.py)), в тестах подставляется
+  детерминированный `fake_embedder`, а не настоящая CLAP.
+- **VLM-цепочка** (итерация 2, [match.py](src/sound_loops/match.py)):
+  `sound-loops match` = кадры лупа (`extract_frames` в
+  [ffmpeg_utils.py](src/sound_loops/ffmpeg_utils.py), уменьшены до
+  448px) → шаг A: VLM (Ollama, `qwen3-vl:4b-instruct` по умолчанию,
+  см. `VLM_*` в `config.py`) описывает сцену в фиксированных категориях
+  → шаг B: та же модель превращает описание в короткий текстовый запрос
+  для CLAP → шаг C: `search_tracks` с фильтром по длительности → рендер.
+  Оба шага VLM собраны как LCEL-цепочки в
+  [vlm.py](src/sound_loops/vlm.py) (`ChatOllama.with_structured_output` +
+  `.with_retry()`), спрятаны за Protocol `SceneAnalyzer` — тот же
+  принцип, что `Embedder`. Результат шага A кешируется в
+  `video_analyses` по ключу `(loop_id, model, prompt_version)`
+  ([analysis.py](src/sound_loops/analysis.py)) — повторный `match` на
+  том же лупе не гоняет VLM заново, только шаг B (быстрый, некеширован
+  намеренно — его формулировки крутят десятками прогонов).
+  **`VLM_CONTEXT_LENGTH` (по умолчанию 16384) — не понижать**: дефолтный
+  контекст Ollama в 4096 токенов не вмещает промпт с 5 кадрами по 448px
+  (`exceed_context_size_error` на реальном прогоне).
 
 ## Тесты
 
@@ -111,3 +152,7 @@
 - Postgres 15 (Homebrew) уже поднят, роль `administrator`, peer-auth,
   `.env`: `postgresql://administrator@localhost:5432/sound_loops`.
 - Python 3.12 через `uv` (системный `python3` — 3.9.6, не подходит).
+- Ollama не был предустановлен — `brew install ollama`, сервис заведён
+  через `brew services start ollama` (слушает `localhost:11434`, см.
+  `VLM_BASE_URL`). Модель `qwen3-vl:4b-instruct` (~3.3ГиБ) скачана через
+  `ollama pull qwen3-vl:4b-instruct`.

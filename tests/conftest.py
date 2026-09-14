@@ -28,6 +28,7 @@ import pytest
 from sound_loops.config import Settings
 from sound_loops.db import ensure_database_exists, init_schema
 from sound_loops.ffmpeg_utils import run
+from sound_loops.vlm import MusicQuery, SceneDescription
 
 
 def make_silent_loop(path: Path, duration_seconds: float) -> Path:
@@ -145,6 +146,33 @@ def fake_embedder() -> FakeEmbedder:
     return FakeEmbedder()
 
 
+class FakeSceneAnalyzer:
+    """Детерминированный SceneAnalyzer вместо похода в Ollama: не ходит в сеть,
+    считает вызовы, чтобы тесты кеша (analysis.py) могли проверить, что
+    describe_scene не вызывается повторно при попадании в кеш."""
+
+    model_id = "fake-scene-analyzer-v1"
+    prompt_version = "fake-v1"
+
+    def __init__(self, query: str = "slow dreamy ambient with soft piano and pads, instrumental") -> None:
+        self._query = query
+        self.describe_calls = 0
+        self.compose_calls = 0
+
+    def describe_scene(self, frames) -> SceneDescription:
+        self.describe_calls += 1
+        return SceneDescription(summary="a test scene", motion="slow", mood=["calm"], is_comic=False)
+
+    def compose_music_query(self, scene: SceneDescription) -> MusicQuery:
+        self.compose_calls += 1
+        return MusicQuery(query=self._query)
+
+
+@pytest.fixture
+def fake_scene_analyzer() -> FakeSceneAnalyzer:
+    return FakeSceneAnalyzer()
+
+
 def _derive_test_database_url() -> str:
     """Взять DATABASE_URL из .env / окружения и приписать _test к имени базы."""
     base_url = Settings().database_url
@@ -167,7 +195,9 @@ def test_database_url() -> str:
 def db_conn(test_database_url: str):
     """Соединение с чистой тестовой базой — таблицы очищены перед каждым тестом."""
     with psycopg.connect(test_database_url, autocommit=True) as setup_conn:
-        setup_conn.execute("TRUNCATE loops, tracks, renders RESTART IDENTITY CASCADE")
+        setup_conn.execute(
+            "TRUNCATE loops, tracks, renders, video_analyses RESTART IDENTITY CASCADE"
+        )
 
     with psycopg.connect(test_database_url) as conn:
         yield conn

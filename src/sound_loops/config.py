@@ -30,6 +30,15 @@ class Settings(BaseSettings):
     clap_device: str = "mps"
     embedding_batch_size: int = 8
 
+    vlm_model: str = "qwen3-vl:4b-instruct"
+    vlm_base_url: str = "http://localhost:11434"
+    vlm_frame_count: int = 5
+    vlm_frame_max_side: int = 448
+    # Ollama по умолчанию режет контекст до 4096 токенов — с 5 кадрами по
+    # 448px этого не хватает (получили exceed_context_size_error на
+    # реальном прогоне), поднимаем явно.
+    vlm_context_length: int = 16384
+
     @field_validator("fade_seconds")
     @classmethod
     def _must_be_positive(cls, v: float) -> float:

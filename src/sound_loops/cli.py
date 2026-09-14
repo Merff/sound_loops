@@ -1,4 +1,4 @@
-"""Точка входа: sound-loops init-db|ingest|render|index|search|clap-check."""
+"""Точка входа: sound-loops init-db|ingest|render|index|search|match|clap-check."""
 
 from __future__ import annotations
 
@@ -107,6 +107,47 @@ def search_cmd(query: str, top_n: int, export_dir: Path | None) -> None:
     if export_dir is not None:
         export_results(results, export_dir)
         click.echo(f"Экспортировано в {export_dir}")
+
+
+@cli.command("match")
+@click.option(
+    "--loop",
+    "loop_path",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    default=None,
+    help="Путь к конкретному лупу. Без флага берётся случайный луп из базы.",
+)
+def match_cmd(loop_path: Path | None) -> None:
+    """Подобрать музыку под луп: VLM-описание сцены -> запрос -> CLAP-поиск -> mp4."""
+    settings = load_settings()
+
+    from sound_loops.hf_cache import ensure_offline_if_cached
+
+    ensure_offline_if_cached(settings.clap_checkpoint)
+
+    from sound_loops.clap import ClapEmbedder
+    from sound_loops.match import match_once
+    from sound_loops.vlm import OllamaSceneAnalyzer
+
+    embedder = ClapEmbedder(settings.clap_checkpoint, settings.clap_device)
+    analyzer = OllamaSceneAnalyzer(settings.vlm_model, settings.vlm_base_url, settings.vlm_context_length)
+
+    with connect(settings.database_url) as conn:
+        result = match_once(conn, analyzer, embedder, settings, loop_path)
+
+    scene = result.analysis.scene
+    cache_note = " (из кеша)" if result.analysis_cached else ""
+    click.echo(f"Луп: {result.loop.path}")
+    click.echo(f"Сцена{cache_note}: {scene.summary}")
+    click.echo(f"Движение: {scene.motion}; настроение: {', '.join(scene.mood)}")
+    if scene.is_comic:
+        click.echo("Комично: да")
+    click.echo(f"Музыкальный запрос: {result.music_query}")
+    click.echo("Топ-3 кандидата:")
+    for rank, r in enumerate(result.candidates, start=1):
+        title = r.title or Path(r.path).name
+        click.echo(f"  {rank}. {r.similarity:.3f}  {title} — {r.artist or '?'}  [{r.path}]")
+    click.echo(str(result.output_path))
 
 
 @cli.command("clap-check")

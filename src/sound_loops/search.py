@@ -37,22 +37,33 @@ def search_tracks(
     embedder: Embedder,
     query: str,
     top_n: int,
+    min_duration_seconds: float | None = None,
 ) -> list[SearchResult]:
     register_vector(conn)
     vector = normalize(embedder.embed_texts([query]))[0]
 
+    duration_clause = "AND duration_seconds >= %s" if min_duration_seconds is not None else ""
+    params = [vector]
+    if min_duration_seconds is not None:
+        params.append(min_duration_seconds)
+    params += [vector, top_n]
+
     rows = conn.execute(
-        """
+        f"""
         SELECT id, path, title, artist, genre, 1 - (embedding <=> %s) AS similarity
         FROM tracks
-        WHERE embedding IS NOT NULL
+        WHERE embedding IS NOT NULL {duration_clause}
         ORDER BY embedding <=> %s
         LIMIT %s
         """,
-        (vector, vector, top_n),
+        params,
     ).fetchall()
 
     if not rows:
+        if min_duration_seconds is not None:
+            raise SearchError(
+                f"нет проиндексированных треков длиной от {min_duration_seconds:.1f}с"
+            )
         raise SearchError("в базе нет проиндексированных треков — сначала запустите index")
 
     return [SearchResult(*row) for row in rows]

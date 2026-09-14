@@ -1,4 +1,4 @@
-.PHONY: sync init-db ingest render render-loop index search clap-check test lint clean
+.PHONY: sync init-db ingest render render-loop index search match match-loop clap-check test lint clean
 
 # Установить зависимости проекта
 sync:
@@ -35,6 +35,18 @@ search:
 		exit 1; \
 	fi
 	uv run sound-loops search "$(QUERY)" $(if $(EXPORT),--export-dir $(EXPORT),)
+
+# Подобрать музыку под случайный луп через VLM-описание сцены + CLAP-поиск
+match:
+	uv run sound-loops match
+
+# То же самое для конкретного лупа: make match-loop LOOP=data/loops/my_loop.mp4
+match-loop:
+	@if [ -z "$(LOOP)" ]; then \
+		echo "Укажи LOOP=путь/к/лупу.mp4, например: make match-loop LOOP=data/loops/my_loop.mp4"; \
+		exit 1; \
+	fi
+	uv run sound-loops match --loop $(LOOP)
 
 # Проверка вменяемости: текстовая башня CLAP не должна быть схлопнута
 clap-check:
