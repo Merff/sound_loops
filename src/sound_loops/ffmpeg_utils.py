@@ -173,6 +173,34 @@ def extract_frames(
     return frames
 
 
+def decode_frames_gray(path: Path, sample_fps: float, size: int) -> np.ndarray:
+    """Задекодировать видео в grayscale-кадры size x size с частотой sample_fps.
+
+    Один вызов ffmpeg на весь клип (в отличие от extract_frames, который
+    вызывается по кадру) — для алгоритмической оценки движения нужны
+    десятки кадров, а не единицы, как для VLM (см. motion.py).
+    """
+    cmd = [
+        "ffmpeg", "-v", "error",
+        "-i", str(path),
+        "-vf", f"fps={sample_fps},scale={size}:{size}",
+        "-pix_fmt", "gray",
+        "-f", "rawvideo",
+        "-",
+    ]
+    result = subprocess.run(cmd, capture_output=True)
+    if result.returncode != 0:
+        pretty_cmd = " ".join(cmd)
+        stderr = result.stderr.decode(errors="replace").strip()
+        raise FfmpegError(
+            f"команда завершилась с кодом {result.returncode}: {pretty_cmd}\n{stderr}"
+        )
+    frame_bytes = size * size
+    raw = np.frombuffer(result.stdout, dtype=np.uint8)
+    n_frames = len(raw) // frame_bytes
+    return raw[: n_frames * frame_bytes].reshape(n_frames, size, size)
+
+
 def mux_loop_with_audio(loop_path: Path, audio_path: Path, output_path: Path) -> None:
     """Склеить немой видео-луп с готовым аудио без перекодирования видео.
 

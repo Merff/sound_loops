@@ -24,10 +24,13 @@ from langchain_ollama import ChatOllama
 from pydantic import BaseModel, Field, field_validator
 
 # Версия промпта — часть ключа кеша в video_analyses (см. analysis.py).
-# Менять при любой правке текста промптов ниже, иначе в базе окажется
+# Менять при любой правке текста промптов/схемы ниже, иначе в базе окажется
 # смесь результатов со старой и новой формулировкой без возможности их
-# различить.
-PROMPT_VERSION = "v1"
+# различить. v2: motion убран из того, что определяет VLM (маленькая модель
+# почти всегда отвечала "static" даже на явно подвижных лупах — не умеет
+# сравнивать отдельные кадры между собой), считается алгоритмически через
+# разницу кадров (см. motion.py).
+PROMPT_VERSION = "v2"
 
 Motion = Literal["static", "slow", "moderate", "fast", "chaotic"]
 Mood = Literal[
@@ -46,14 +49,34 @@ Mood = Literal[
 ]
 
 
-class SceneDescription(BaseModel):
-    """Шаг A: что модель увидела в кадрах лупа. Узкие типы — чтобы прогоны
-    можно было сравнивать между собой и не зависеть от вольного текста."""
+class SceneObservation(BaseModel):
+    """То, что VLM реально в состоянии оценить по отдельным кадрам: смысл и
+    настроение. Motion сюда намеренно не входит — маленькая модель ненадёжно
+    сравнивает отдельные картинки между собой, это считается отдельно и
+    дёшево через разницу кадров (см. motion.py)."""
 
     summary: str = Field(description="One sentence describing what happens in the video, in English.")
-    motion: Motion = Field(description="Overall amount of movement in the scene.")
-    mood: list[Mood] = Field(min_length=1, max_length=3, description="One to three moods that fit the scene.")
+    mood: list[Mood] = Field(min_length=1, max_length=3, description="One to three DIFFERENT moods that fit the scene.")
     is_comic: bool = Field(description="Whether what's happening is funny or absurd.")
+
+    @field_validator("mood")
+    @classmethod
+    def _dedupe_mood(cls, value: list[Mood]) -> list[Mood]:
+        """4B-модель иногда повторяет одно и то же значение (['dreamy', 'dreamy']) —
+        схема гарантирует длину 1-3, но не уникальность, дедуп молча дешевле
+        ретрая на VLM ради чисто косметической проблемы."""
+        return list(dict.fromkeys(value))
+
+
+class SceneDescription(BaseModel):
+    """Полное описание сцены — SceneObservation (VLM) + motion (алгоритм),
+    собранное воедино. Это то, что кешируется в video_analyses и то, что
+    видит шаг B (compose_music_query)."""
+
+    summary: str
+    motion: Motion
+    mood: list[Mood]
+    is_comic: bool
 
 
 class MusicQuery(BaseModel):
@@ -86,18 +109,19 @@ class SceneAnalyzer(Protocol):
     model_id: str
     prompt_version: str
 
-    def describe_scene(self, frames: Sequence[bytes]) -> SceneDescription:
-        """Кадры лупа (JPEG-байты) -> структурированное описание сцены."""
+    def describe_scene(self, frames: Sequence[bytes]) -> SceneObservation:
+        """Кадры лупа (JPEG-байты) -> смысл и настроение сцены (без motion)."""
 
     def compose_music_query(self, scene: SceneDescription) -> MusicQuery:
-        """Описание сцены -> короткий текстовый запрос для CLAP-поиска музыки."""
+        """Полное описание сцены -> короткий текстовый запрос для CLAP-поиска музыки."""
 
 
 _SCENE_SYSTEM_PROMPT = (
     "You are looking at frames from a short silent video loop. Your job is "
-    "to describe it briefly so that someone else can later pick fitting "
-    "background music, without seeing the video themselves. Answer only in "
-    "English and only using the fixed categories given by the schema."
+    "to describe what happens and its mood, briefly, so that someone else "
+    "can later pick fitting background music, without seeing the video "
+    "themselves. Answer only in English and only using the fixed categories "
+    "given by the schema."
 )
 _SCENE_INSTRUCTION = (
     "These frames are evenly sampled from one video loop, in order. "
@@ -165,13 +189,13 @@ class OllamaSceneAnalyzer:
         chat = ChatOllama(model=model, base_url=base_url, num_ctx=context_length)
 
         self._scene_chain = (
-            RunnableLambda(_scene_messages) | chat.with_structured_output(SceneDescription)
+            RunnableLambda(_scene_messages) | chat.with_structured_output(SceneObservation)
         ).with_retry(stop_after_attempt=2)
         self._music_chain = (_MUSIC_PROMPT | chat.with_structured_output(MusicQuery)).with_retry(
             stop_after_attempt=2
         )
 
-    def describe_scene(self, frames: Sequence[bytes]) -> SceneDescription:
+    def describe_scene(self, frames: Sequence[bytes]) -> SceneObservation:
         return self._scene_chain.invoke(frames)
 
     def compose_music_query(self, scene: SceneDescription) -> MusicQuery:

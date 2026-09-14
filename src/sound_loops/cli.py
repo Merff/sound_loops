@@ -1,4 +1,4 @@
-"""Точка входа: sound-loops init-db|ingest|render|index|search|match|clap-check."""
+"""Точка входа: sound-loops init-db|ingest|render|index|search|analyze|match|clear-renders|clear-analyses|clap-check."""
 
 from __future__ import annotations
 
@@ -109,6 +109,35 @@ def search_cmd(query: str, top_n: int, export_dir: Path | None) -> None:
         click.echo(f"Экспортировано в {export_dir}")
 
 
+@cli.command("analyze")
+@click.option(
+    "--loop",
+    "loop_path",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    default=None,
+    help="Путь к конкретному лупу. Без флага берётся случайный луп из базы.",
+)
+def analyze_cmd(loop_path: Path | None) -> None:
+    """VLM-анализ сцены лупа (описание, настроение, motion) -> video_analyses."""
+    settings = load_settings()
+
+    from sound_loops.analysis import analyze_loop_by_path
+    from sound_loops.vlm import OllamaSceneAnalyzer
+
+    analyzer = OllamaSceneAnalyzer(settings.vlm_model, settings.vlm_base_url, settings.vlm_context_length)
+
+    with connect(settings.database_url) as conn:
+        loop, record, cached = analyze_loop_by_path(conn, analyzer, settings, loop_path)
+
+    scene = record.scene
+    cache_note = " (уже был в кеше)" if cached else ""
+    click.echo(f"Луп: {loop.path}")
+    click.echo(f"Сцена{cache_note}: {scene.summary}")
+    click.echo(f"Движение: {scene.motion}; настроение: {', '.join(scene.mood)}")
+    if scene.is_comic:
+        click.echo("Комично: да")
+
+
 @cli.command("match")
 @click.option(
     "--loop",
@@ -118,7 +147,7 @@ def search_cmd(query: str, top_n: int, export_dir: Path | None) -> None:
     help="Путь к конкретному лупу. Без флага берётся случайный луп из базы.",
 )
 def match_cmd(loop_path: Path | None) -> None:
-    """Подобрать музыку под луп: VLM-описание сцены -> запрос -> CLAP-поиск -> mp4."""
+    """Подобрать музыку под уже проанализированный луп (см. analyze) -> CLAP-поиск -> mp4."""
     settings = load_settings()
 
     from sound_loops.hf_cache import ensure_offline_if_cached
@@ -136,9 +165,8 @@ def match_cmd(loop_path: Path | None) -> None:
         result = match_once(conn, analyzer, embedder, settings, loop_path)
 
     scene = result.analysis.scene
-    cache_note = " (из кеша)" if result.analysis_cached else ""
     click.echo(f"Луп: {result.loop.path}")
-    click.echo(f"Сцена{cache_note}: {scene.summary}")
+    click.echo(f"Сцена: {scene.summary}")
     click.echo(f"Движение: {scene.motion}; настроение: {', '.join(scene.mood)}")
     if scene.is_comic:
         click.echo("Комично: да")
@@ -148,6 +176,30 @@ def match_cmd(loop_path: Path | None) -> None:
         title = r.title or Path(r.path).name
         click.echo(f"  {rank}. {r.similarity:.3f}  {title} — {r.artist or '?'}  [{r.path}]")
     click.echo(str(result.output_path))
+
+
+@cli.command("clear-renders")
+def clear_renders_cmd() -> None:
+    """Удалить все renders — из базы и файлы с диска. video_analyses не трогает."""
+    settings = load_settings()
+
+    from sound_loops.maintenance import clear_renders
+
+    with connect(settings.database_url) as conn:
+        report = clear_renders(conn)
+    report.print_summary()
+
+
+@cli.command("clear-analyses")
+def clear_analyses_cmd() -> None:
+    """Удалить все video_analyses и рендеры, сделанные по ним (БД + файлы)."""
+    settings = load_settings()
+
+    from sound_loops.maintenance import clear_analyses
+
+    with connect(settings.database_url) as conn:
+        report = clear_analyses(conn)
+    report.print_summary()
 
 
 @cli.command("clap-check")

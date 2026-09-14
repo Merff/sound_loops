@@ -8,10 +8,15 @@ from __future__ import annotations
 
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
+from pathlib import Path
 
 import psycopg
 
-from sound_loops.vlm import SceneAnalyzer, SceneDescription
+from sound_loops.config import Settings
+from sound_loops.ffmpeg_utils import extract_frames
+from sound_loops.motion import estimate_motion
+from sound_loops.render import LoopRow, get_loop_by_path, get_random_loop
+from sound_loops.vlm import Motion, SceneAnalyzer, SceneDescription
 
 
 @dataclass(frozen=True)
@@ -60,15 +65,46 @@ def analyze_loop(
     analyzer: SceneAnalyzer,
     loop_id: int,
     get_frames: Callable[[], Sequence[bytes]],
+    get_motion: Callable[[], Motion],
 ) -> tuple[AnalysisRecord, bool]:
     """Вернуть (запись анализа, взята_ли_из_кеша).
 
-    get_frames — кадры лупа, извлекаются лениво: при попадании в кеш ffmpeg
-    вообще не запускается.
+    get_frames/get_motion — лениво: при попадании в кеш ни VLM, ни разница
+    кадров вообще не считаются. Motion не спрашивается у VLM (см. motion.py
+    и vlm.py::SceneObservation) — собирается здесь же, в полный SceneDescription.
     """
     cached = get_cached_analysis(conn, loop_id, analyzer.model_id, analyzer.prompt_version)
     if cached is not None:
         return cached, True
 
-    scene = analyzer.describe_scene(get_frames())
+    observation = analyzer.describe_scene(get_frames())
+    scene = SceneDescription(
+        summary=observation.summary,
+        motion=get_motion(),
+        mood=observation.mood,
+        is_comic=observation.is_comic,
+    )
     return save_analysis(conn, loop_id, analyzer.model_id, analyzer.prompt_version, scene), False
+
+
+def analyze_loop_by_path(
+    conn: psycopg.Connection,
+    analyzer: SceneAnalyzer,
+    settings: Settings,
+    loop_path: Path | None = None,
+) -> tuple[LoopRow, AnalysisRecord, bool]:
+    """Разрешить луп (по пути или случайный) и прогнать analyze_loop с реальным
+    извлечением кадров/оценкой motion. Общая точка входа команды `analyze`
+    и шага A команды `match` (см. match.py)."""
+    loop = get_loop_by_path(conn, loop_path, settings) if loop_path else get_random_loop(conn)
+
+    def get_frames() -> list[bytes]:
+        return extract_frames(
+            Path(loop.path), loop.duration_seconds, settings.vlm_frame_count, settings.vlm_frame_max_side
+        )
+
+    def get_motion() -> Motion:
+        return estimate_motion(Path(loop.path), settings.motion_sample_fps, settings.motion_frame_size)
+
+    record, cached = analyze_loop(conn, analyzer, loop.id, get_frames, get_motion)
+    return loop, record, cached

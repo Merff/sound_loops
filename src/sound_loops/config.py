@@ -39,6 +39,11 @@ class Settings(BaseSettings):
     # реальном прогоне), поднимаем явно.
     vlm_context_length: int = 16384
 
+    # Motion считается алгоритмически (motion.py), не через VLM — см.
+    # docs/sound_loops-iteration-2.md и motion.py про калибровку порогов.
+    motion_sample_fps: float = 8.0
+    motion_frame_size: int = 64
+
     @field_validator("fade_seconds")
     @classmethod
     def _must_be_positive(cls, v: float) -> float:

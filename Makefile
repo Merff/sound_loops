@@ -1,4 +1,4 @@
-.PHONY: sync init-db ingest render render-loop index search match match-loop clap-check test lint clean
+.PHONY: sync init-db ingest render render-loop index search analyze analyze-loop match match-loop clear-renders clear-analyses clap-check test lint clean
 
 # Установить зависимости проекта
 sync:
@@ -36,7 +36,19 @@ search:
 	fi
 	uv run sound-loops search "$(QUERY)" $(if $(EXPORT),--export-dir $(EXPORT),)
 
-# Подобрать музыку под случайный луп через VLM-описание сцены + CLAP-поиск
+# VLM-анализ сцены случайного лупа (описание, настроение, motion) -> video_analyses
+analyze:
+	uv run sound-loops analyze
+
+# То же самое для конкретного лупа: make analyze-loop LOOP=data/loops/my_loop.mp4
+analyze-loop:
+	@if [ -z "$(LOOP)" ]; then \
+		echo "Укажи LOOP=путь/к/лупу.mp4, например: make analyze-loop LOOP=data/loops/my_loop.mp4"; \
+		exit 1; \
+	fi
+	uv run sound-loops analyze --loop $(LOOP)
+
+# Подобрать музыку под уже проанализированный случайный луп (см. analyze) + CLAP-поиск
 match:
 	uv run sound-loops match
 
@@ -47,6 +59,14 @@ match-loop:
 		exit 1; \
 	fi
 	uv run sound-loops match --loop $(LOOP)
+
+# Удалить все рендеры — из базы и файлы с диска. video_analyses не трогает
+clear-renders:
+	uv run sound-loops clear-renders
+
+# Удалить все анализы сцен и рендеры, сделанные по ним (БД + файлы)
+clear-analyses:
+	uv run sound-loops clear-analyses
 
 # Проверка вменяемости: текстовая башня CLAP не должна быть схлопнута
 clap-check:

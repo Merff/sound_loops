@@ -33,11 +33,20 @@
 
 - **CLI**: `click`, команды — `init-db`, `ingest`, `render [--loop PATH]`
   (случайный трек, итерация 0), `index`, `search QUERY [--top N]
-  [--export-dir DIR]`, `match [--loop PATH]` (VLM-подбор, итерация 2),
-  `clap-check` ([cli.py](src/sound_loops/cli.py)). Через `make` см.
-  `Makefile` (`sync`, `init-db`, `ingest`, `render`, `render-loop LOOP=...`,
-  `index`, `search QUERY=...`, `match`, `match-loop LOOP=...`, `clap-check`,
-  `test`, `lint`, `clean`).
+  [--export-dir DIR]`, `analyze [--loop PATH]` (шаг A, пишет
+  `video_analyses`) и `match [--loop PATH]` (шаги B/C/D, требует, чтобы
+  `analyze` уже был прогнан на этом лупе — иначе понятная ошибка с
+  подсказкой) — намеренно разные команды, не единая VLM-подбор-команда,
+  см. ниже; `clear-renders` (БД + файлы с диска, `video_analyses` не
+  трогает) и `clear-analyses` (БД, каскадно тянет за собой рендеры,
+  сделанные по этим анализам — `renders.analysis_id IS NOT NULL` — и их
+  файлы; baseline-рендеры итерации 0 не трогает,
+  [maintenance.py](src/sound_loops/maintenance.py)); `clap-check`
+  ([cli.py](src/sound_loops/cli.py)). Через `make` см. `Makefile`
+  (`sync`, `init-db`, `ingest`, `render`, `render-loop LOOP=...`,
+  `index`, `search QUERY=...`, `analyze`, `analyze-loop LOOP=...`,
+  `match`, `match-loop LOOP=...`, `clear-renders`, `clear-analyses`,
+  `clap-check`, `test`, `lint`, `clean`).
 - **Конфиг**: `pydantic-settings`, читает `.env` ([config.py](src/sound_loops/config.py)).
 - **БД**: Postgres, драйвер `psycopg` v3 (не psycopg2), без ORM — везде
   сырой SQL через `conn.execute(...)`. Схема управляется
@@ -82,24 +91,34 @@
   ([search.py](src/sound_loops/search.py)). `Embedder` — Protocol
   ([embeddings.py](src/sound_loops/embeddings.py)), в тестах подставляется
   детерминированный `fake_embedder`, а не настоящая CLAP.
-- **VLM-цепочка** (итерация 2, [match.py](src/sound_loops/match.py)):
-  `sound-loops match` = кадры лупа (`extract_frames` в
-  [ffmpeg_utils.py](src/sound_loops/ffmpeg_utils.py), уменьшены до
-  448px) → шаг A: VLM (Ollama, `qwen3-vl:4b-instruct` по умолчанию,
-  см. `VLM_*` в `config.py`) описывает сцену в фиксированных категориях
-  → шаг B: та же модель превращает описание в короткий текстовый запрос
-  для CLAP → шаг C: `search_tracks` с фильтром по длительности → рендер.
-  Оба шага VLM собраны как LCEL-цепочки в
-  [vlm.py](src/sound_loops/vlm.py) (`ChatOllama.with_structured_output` +
-  `.with_retry()`), спрятаны за Protocol `SceneAnalyzer` — тот же
-  принцип, что `Embedder`. Результат шага A кешируется в
-  `video_analyses` по ключу `(loop_id, model, prompt_version)`
-  ([analysis.py](src/sound_loops/analysis.py)) — повторный `match` на
-  том же лупе не гоняет VLM заново, только шаг B (быстрый, некеширован
-  намеренно — его формулировки крутят десятками прогонов).
-  **`VLM_CONTEXT_LENGTH` (по умолчанию 16384) — не понижать**: дефолтный
-  контекст Ollama в 4096 токенов не вмещает промпт с 5 кадрами по 448px
-  (`exceed_context_size_error` на реальном прогоне).
+- **VLM-цепочка** (итерация 2) разбита на две независимые команды —
+  специально, чтобы можно было прогнать дорогой шаг A один раз и потом
+  дёшево крутить шаги B/C десятки раз:
+  - **`analyze`** ([analysis.py](src/sound_loops/analysis.py)`::analyze_loop_by_path`):
+    кадры лупа (`extract_frames` в [ffmpeg_utils.py](src/sound_loops/ffmpeg_utils.py),
+    уменьшены до 448px) → VLM (Ollama, `qwen3-vl:4b-instruct` по
+    умолчанию, см. `VLM_*` в `config.py`) описывает смысл/настроение
+    (`SceneObservation` — без motion) → motion считается отдельно и
+    алгоритмически, через разницу соседних кадров, не VLM'ом (маленькая
+    модель почти всегда отвечала "static" даже на явно подвижных лупах —
+    см. [motion.py](src/sound_loops/motion.py), пороги калибровались на
+    реальных тестовых лупах, `MOTION_*` в `config.py`) → всё вместе
+    (`SceneDescription`) пишется в `video_analyses`, ключ кеша
+    `(loop_id, model, prompt_version)`.
+  - **`match`** ([match.py](src/sound_loops/match.py)): шаг A не
+    запускает вообще, только читает уже сохранённый анализ
+    (`get_cached_analysis`) — если его нет, падает с `MatchError`
+    и подсказкой прогнать `analyze` сначала. Дальше: та же VLM
+    превращает описание в короткий текстовый запрос для CLAP → `search_tracks`
+    с фильтром по длительности → рендер, помечен `analysis_id`/`music_query`
+    в `renders`.
+  - Оба шага VLM (в `analyze` и в `match`) собраны как LCEL-цепочки в
+    [vlm.py](src/sound_loops/vlm.py) (`ChatOllama.with_structured_output` +
+    `.with_retry()`), спрятаны за Protocol `SceneAnalyzer` — тот же
+    принцип, что `Embedder`.
+  - **`VLM_CONTEXT_LENGTH` (по умолчанию 16384) — не понижать**: дефолтный
+    контекст Ollama в 4096 токенов не вмещает промпт с 5 кадрами по 448px
+    (`exceed_context_size_error` на реальном прогоне).
 
 ## Тесты
 

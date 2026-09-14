@@ -28,7 +28,7 @@ import pytest
 from sound_loops.config import Settings
 from sound_loops.db import ensure_database_exists, init_schema
 from sound_loops.ffmpeg_utils import run
-from sound_loops.vlm import MusicQuery, SceneDescription
+from sound_loops.vlm import MusicQuery, SceneDescription, SceneObservation
 
 
 def make_silent_loop(path: Path, duration_seconds: float) -> Path:
@@ -159,9 +159,9 @@ class FakeSceneAnalyzer:
         self.describe_calls = 0
         self.compose_calls = 0
 
-    def describe_scene(self, frames) -> SceneDescription:
+    def describe_scene(self, frames) -> SceneObservation:
         self.describe_calls += 1
-        return SceneDescription(summary="a test scene", motion="slow", mood=["calm"], is_comic=False)
+        return SceneObservation(summary="a test scene", mood=["calm"], is_comic=False)
 
     def compose_music_query(self, scene: SceneDescription) -> MusicQuery:
         self.compose_calls += 1

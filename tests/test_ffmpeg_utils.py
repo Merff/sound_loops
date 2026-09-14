@@ -1,7 +1,10 @@
 from pathlib import Path
 
+import numpy as np
+
 from sound_loops.ffmpeg_utils import (
     decode_audio_mono,
+    decode_frames_gray,
     extract_audio_segment,
     extract_frames,
     mux_loop_with_audio,
@@ -95,6 +98,17 @@ def test_extract_frames_downscales_to_max_side(silent_loop: Path, tmp_path: Path
     )
     width, height = (int(v) for v in identify.stdout.strip().split(","))
     assert max(width, height) <= 100
+
+
+def test_decode_frames_gray_returns_expected_shape(silent_loop: Path):
+    loop_info = probe(silent_loop)
+
+    frames = decode_frames_gray(silent_loop, sample_fps=8.0, size=32)
+
+    expected_count = round(loop_info.duration_seconds * 8.0)
+    assert abs(len(frames) - expected_count) <= 1
+    assert frames.shape[1:] == (32, 32)
+    assert frames.dtype == np.uint8
 
 
 def test_decode_audio_mono_returns_expected_sample_count(tone_track: Path):

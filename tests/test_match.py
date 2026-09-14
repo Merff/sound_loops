@@ -1,7 +1,10 @@
+import pytest
+
+from sound_loops.analysis import analyze_loop_by_path
 from sound_loops.ffmpeg_utils import probe
 from sound_loops.index import index_tracks
 from sound_loops.ingest import IngestReport, ingest_loop_file, ingest_track_file
-from sound_loops.match import match_once
+from sound_loops.match import MatchError, match_once
 
 
 def _setup_loop_and_track(conn, settings, get_silent_loop, get_tone_track, tmp_path, fake_embedder):
@@ -15,12 +18,24 @@ def _setup_loop_and_track(conn, settings, get_silent_loop, get_tone_track, tmp_p
     return loop_id, loop_path
 
 
+def test_match_once_raises_without_prior_analysis(
+    db_conn, db_settings, get_silent_loop, get_tone_track, tmp_path, fake_embedder, fake_scene_analyzer
+):
+    _loop_id, loop_path = _setup_loop_and_track(
+        db_conn, db_settings, get_silent_loop, get_tone_track, tmp_path, fake_embedder
+    )
+
+    with pytest.raises(MatchError):
+        match_once(db_conn, fake_scene_analyzer, fake_embedder, db_settings, loop_path)
+
+
 def test_match_once_produces_playable_output_and_records_render(
     db_conn, db_settings, get_silent_loop, get_tone_track, tmp_path, fake_embedder, fake_scene_analyzer
 ):
     _loop_id, loop_path = _setup_loop_and_track(
         db_conn, db_settings, get_silent_loop, get_tone_track, tmp_path, fake_embedder
     )
+    analyze_loop_by_path(db_conn, fake_scene_analyzer, db_settings, loop_path)
 
     result = match_once(db_conn, fake_scene_analyzer, fake_embedder, db_settings, loop_path)
 
@@ -41,28 +56,29 @@ def test_match_once_produces_playable_output_and_records_render(
     assert row[1] == result.music_query
 
 
-def test_match_once_reuses_cached_analysis_on_second_run(
+def test_match_once_never_reruns_scene_analysis(
     db_conn, db_settings, get_silent_loop, get_tone_track, tmp_path, fake_embedder, fake_scene_analyzer
 ):
     _loop_id, loop_path = _setup_loop_and_track(
         db_conn, db_settings, get_silent_loop, get_tone_track, tmp_path, fake_embedder
     )
+    analyze_loop_by_path(db_conn, fake_scene_analyzer, db_settings, loop_path)
+    assert fake_scene_analyzer.describe_calls == 1
 
     first = match_once(db_conn, fake_scene_analyzer, fake_embedder, db_settings, loop_path)
     second = match_once(db_conn, fake_scene_analyzer, fake_embedder, db_settings, loop_path)
 
-    assert first.analysis_cached is False
-    assert second.analysis_cached is True
-    assert fake_scene_analyzer.describe_calls == 1
+    assert fake_scene_analyzer.describe_calls == 1  # match вообще не трогает describe_scene
     assert first.analysis.id == second.analysis.id
 
 
 def test_match_once_picks_random_loop_when_no_path_given(
     db_conn, db_settings, get_silent_loop, get_tone_track, tmp_path, fake_embedder, fake_scene_analyzer
 ):
-    _loop_id, _loop_path = _setup_loop_and_track(
+    _loop_id, loop_path = _setup_loop_and_track(
         db_conn, db_settings, get_silent_loop, get_tone_track, tmp_path, fake_embedder
     )
+    analyze_loop_by_path(db_conn, fake_scene_analyzer, db_settings, loop_path)
 
     result = match_once(db_conn, fake_scene_analyzer, fake_embedder, db_settings, loop_path=None)
 

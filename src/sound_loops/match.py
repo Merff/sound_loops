@@ -1,10 +1,14 @@
-"""Полная цепочка итерации 2: кадры лупа -> VLM-описание сцены -> музыкальный
-запрос -> CLAP-поиск -> сборка превью (docs/sound_loops-iteration-2.md).
+"""Подбор и наложение трека под уже проанализированный луп (шаги B/C/D
+итерации 2, docs/sound_loops-iteration-2.md): музыкальный запрос ->
+CLAP-поиск -> сборка превью.
 
-По структуре — аналог render_once из render.py, только источник трека не
-random(), а поиск по смыслу. Рендер помечается ссылкой на video_analyses
-(analysis_id) и сохранённым music_query — по ним видно, что превью собрано
-этой цепочкой, а не случайным baseline'ом итерации 0.
+Шаг A (VLM-описание сцены + motion) — отдельная команда `analyze`
+(см. analysis.py::analyze_loop_by_path и cli.py). Здесь он не запускается:
+match полагается на то, что анализ уже лежит в video_analyses — это и есть
+смысл разделения на две команды, а не просто их совместный запуск под
+одной крышей. Рендер помечается ссылкой на video_analyses (analysis_id) и
+сохранённым music_query — по ним видно, что превью собрано этой цепочкой,
+а не случайным baseline'ом итерации 0.
 """
 
 from __future__ import annotations
@@ -16,20 +20,23 @@ from pathlib import Path
 
 import psycopg
 
-from sound_loops.analysis import AnalysisRecord, analyze_loop
+from sound_loops.analysis import AnalysisRecord, get_cached_analysis
 from sound_loops.config import Settings
 from sound_loops.embeddings import Embedder
-from sound_loops.ffmpeg_utils import extract_audio_segment, extract_frames, mux_loop_with_audio
+from sound_loops.ffmpeg_utils import extract_audio_segment, mux_loop_with_audio
 from sound_loops.render import LoopRow, get_loop_by_path, get_random_loop, pick_random_start
 from sound_loops.search import SearchResult, search_tracks
 from sound_loops.vlm import SceneAnalyzer
+
+
+class MatchError(RuntimeError):
+    pass
 
 
 @dataclass(frozen=True)
 class MatchResult:
     loop: LoopRow
     analysis: AnalysisRecord
-    analysis_cached: bool
     music_query: str
     candidates: list[SearchResult]
     output_path: Path
@@ -44,15 +51,14 @@ def match_once(
 ) -> MatchResult:
     loop = get_loop_by_path(conn, loop_path, settings) if loop_path else get_random_loop(conn)
 
-    def get_frames() -> list[bytes]:
-        return extract_frames(
-            Path(loop.path),
-            loop.duration_seconds,
-            settings.vlm_frame_count,
-            settings.vlm_frame_max_side,
+    analysis = get_cached_analysis(conn, loop.id, analyzer.model_id, analyzer.prompt_version)
+    if analysis is None:
+        raise MatchError(
+            f"для лупа {loop.path} нет сохранённого анализа сцены "
+            f"(модель {analyzer.model_id!r}, промпт {analyzer.prompt_version!r}) — "
+            f"сначала запустите: sound-loops analyze --loop {loop.path}"
         )
 
-    analysis, cached = analyze_loop(conn, analyzer, loop.id, get_frames)
     music_query = analyzer.compose_music_query(analysis.scene).query
 
     candidates = search_tracks(conn, embedder, music_query, top_n=3, min_duration_seconds=loop.duration_seconds)
@@ -93,7 +99,6 @@ def match_once(
     return MatchResult(
         loop=loop,
         analysis=analysis,
-        analysis_cached=cached,
         music_query=music_query,
         candidates=candidates,
         output_path=output_path,
