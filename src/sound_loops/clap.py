@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from collections.abc import Sequence
 
 import numpy as np
@@ -12,6 +13,28 @@ from transformers import ClapModel, ClapProcessor
 from sound_loops.embeddings import normalize
 
 logger = logging.getLogger(__name__)
+
+
+def _from_pretrained(cls, checkpoint: str):
+    """from_pretrained с разовым запасным путём на случай HF_HUB_OFFLINE=1 без кэша.
+
+    Обычно офлайн-режим уже включён до импорта transformers (см.
+    hf_cache.ensure_offline_if_cached — выставлять HF_HUB_OFFLINE после
+    импорта ненадёжно, часть внутренних клиентов huggingface_hub его не
+    подхватывает). Если чекпоинта всё же нет локально, на один раз снимаем
+    офлайн-режим и качаем.
+    """
+    try:
+        return cls.from_pretrained(checkpoint)
+    except OSError:
+        if os.environ.get("HF_HUB_OFFLINE") != "1":
+            raise
+        logger.info("%s не найден в локальном кэше при HF_HUB_OFFLINE=1, скачиваю...", checkpoint)
+        del os.environ["HF_HUB_OFFLINE"]
+        try:
+            return cls.from_pretrained(checkpoint)
+        finally:
+            os.environ["HF_HUB_OFFLINE"] = "1"
 
 DEFAULT_CHECKPOINT = "laion/larger_clap_general"
 
@@ -33,8 +56,8 @@ class ClapEmbedder:
         self.model_id = checkpoint
         self._device = self._resolve_device(device)
         logger.info("загружаю CLAP %s на %s", checkpoint, self._device)
-        self.processor = ClapProcessor.from_pretrained(checkpoint)
-        self.model = ClapModel.from_pretrained(checkpoint).to(self._device)
+        self.processor = _from_pretrained(ClapProcessor, checkpoint)
+        self.model = _from_pretrained(ClapModel, checkpoint).to(self._device)
         self.model.eval()
         self.sample_rate = self.processor.feature_extractor.sampling_rate
 

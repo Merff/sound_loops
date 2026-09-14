@@ -61,10 +61,15 @@ def render_cmd(loop_path: Path | None) -> None:
 @click.option("--limit", type=int, default=None, help="Обработать не больше N треков за запуск.")
 def index_cmd(batch_size: int | None, limit: int | None) -> None:
     """Посчитать эмбеддинги треков, у которых их ещё нет (или посчитаны другой моделью)."""
+    settings = load_settings()
+
+    from sound_loops.hf_cache import ensure_offline_if_cached
+
+    ensure_offline_if_cached(settings.clap_checkpoint)
+
     from sound_loops.clap import ClapEmbedder
     from sound_loops.index import index_tracks
 
-    settings = load_settings()
     embedder = ClapEmbedder(settings.clap_checkpoint, settings.clap_device)
     with connect(settings.database_url) as conn:
         report = index_tracks(conn, embedder, batch_size or settings.embedding_batch_size, limit)
@@ -83,13 +88,18 @@ def index_cmd(batch_size: int | None, limit: int | None) -> None:
 @click.option("--open", "open_player", is_flag=True, help="Открыть экспортированные треки системным плеером (macOS).")
 def search_cmd(query: str, top_n: int, export_dir: Path | None, open_player: bool) -> None:
     """Найти треки, наиболее похожие на текстовое описание QUERY."""
-    from sound_loops.clap import ClapEmbedder
-    from sound_loops.search import export_results, open_with_player, search_tracks
-
     if open_player and export_dir is None:
         raise click.UsageError("--open работает только вместе с --export-dir")
 
     settings = load_settings()
+
+    from sound_loops.hf_cache import ensure_offline_if_cached
+
+    ensure_offline_if_cached(settings.clap_checkpoint)
+
+    from sound_loops.clap import ClapEmbedder
+    from sound_loops.search import export_results, open_with_player, search_tracks
+
     embedder = ClapEmbedder(settings.clap_checkpoint, settings.clap_device)
     with connect(settings.database_url) as conn:
         results = search_tracks(conn, embedder, query, top_n)
@@ -108,11 +118,16 @@ def search_cmd(query: str, top_n: int, export_dir: Path | None, open_player: boo
 @cli.command("clap-check")
 def clap_check_cmd() -> None:
     """Проверка вменяемости: текстовая башня CLAP не должна быть схлопнута."""
+    settings = load_settings()
+
+    from sound_loops.hf_cache import ensure_offline_if_cached
+
+    ensure_offline_if_cached(settings.clap_checkpoint)
+
     import numpy as np
 
     from sound_loops.clap import COLLAPSE_CHECK_PHRASES, ClapEmbedder, check_text_tower
 
-    settings = load_settings()
     embedder = ClapEmbedder(settings.clap_checkpoint, settings.clap_device)
     similarities = check_text_tower(embedder)
 
