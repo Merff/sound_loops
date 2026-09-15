@@ -23,14 +23,10 @@ from langchain_core.runnables import RunnableLambda
 from langchain_ollama import ChatOllama
 from pydantic import BaseModel, Field, field_validator
 
-# Версия промпта — часть ключа кеша в video_analyses (см. analysis.py).
-# Менять при любой правке текста промптов/схемы ниже, иначе в базе окажется
-# смесь результатов со старой и новой формулировкой без возможности их
-# различить. v2: motion убран из того, что определяет VLM (маленькая модель
-# почти всегда отвечала "static" даже на явно подвижных лупах — не умеет
-# сравнивать отдельные кадры между собой), считается алгоритмически через
-# разницу кадров (см. motion.py).
-PROMPT_VERSION = "v2"
+# Часть ключа кеша в video_analyses (см. analysis.py) — менять при любой
+# правке текста промптов/схемы ниже, иначе в базе смешаются результаты
+# старой и новой формулировки без возможности их различить.
+PROMPT_VERSION = "v6"
 
 Motion = Literal["static", "slow", "moderate", "fast", "chaotic"]
 Mood = Literal[
@@ -47,17 +43,29 @@ Mood = Literal[
     "dreamy",
     "triumphant",
 ]
+Setting = Literal[
+    "combat",
+    "horror",
+    "domestic",
+    "nature",
+    "scifi_fantasy",
+    "sports",
+    "romance",
+    "nightlife",
+    "performance",
+    "abstract",
+]
 
 
 class SceneObservation(BaseModel):
-    """То, что VLM реально в состоянии оценить по отдельным кадрам: смысл и
-    настроение. Motion сюда намеренно не входит — маленькая модель ненадёжно
-    сравнивает отдельные картинки между собой, это считается отдельно и
-    дёшево через разницу кадров (см. motion.py)."""
+    """То, что VLM реально в состоянии оценить по отдельным кадрам —
+    закрытые категории жанра и настроения. Motion сюда не входит — считается
+    алгоритмически (см. motion.py)."""
 
-    summary: str = Field(description="One sentence describing what happens in the video, in English.")
+    setting: Setting = Field(
+        description="The single closest genre/setting category for the scene — decides the music's genre."
+    )
     mood: list[Mood] = Field(min_length=1, max_length=3, description="One to three DIFFERENT moods that fit the scene.")
-    is_comic: bool = Field(description="Whether what's happening is funny or absurd.")
 
     @field_validator("mood")
     @classmethod
@@ -70,13 +78,12 @@ class SceneObservation(BaseModel):
 
 class SceneDescription(BaseModel):
     """Полное описание сцены — SceneObservation (VLM) + motion (алгоритм),
-    собранное воедино. Это то, что кешируется в video_analyses и то, что
-    видит шаг B (compose_music_query)."""
+    собранное воедино. Это то, что кешируется в video_analyses и что видит
+    шаг B (compose_music_query)."""
 
-    summary: str
+    setting: Setting
     motion: Motion
     mood: list[Mood]
-    is_comic: bool
 
 
 class MusicQuery(BaseModel):
@@ -110,52 +117,58 @@ class SceneAnalyzer(Protocol):
     prompt_version: str
 
     def describe_scene(self, frames: Sequence[bytes]) -> SceneObservation:
-        """Кадры лупа (JPEG-байты) -> смысл и настроение сцены (без motion)."""
+        """Кадры лупа (JPEG-байты) -> обстановка и настроение сцены (без motion)."""
 
     def compose_music_query(self, scene: SceneDescription) -> MusicQuery:
         """Полное описание сцены -> короткий текстовый запрос для CLAP-поиска музыки."""
 
 
 _SCENE_SYSTEM_PROMPT = (
-    "You are looking at frames from a short silent video loop. Your job is "
-    "to describe what happens and its mood, briefly, so that someone else "
-    "can later pick fitting background music, without seeing the video "
-    "themselves. Answer only in English and only using the fixed categories "
-    "given by the schema."
+    "You are looking at frames from a short silent video loop, sampled in "
+    "order. Classify it so someone else can pick fitting background music "
+    "without seeing the video.\n\n"
+    "setting: closest genre/setting category from the fixed list — decides "
+    "the music's genre. Avoid a generic default (e.g. domestic) if a more "
+    "specific one fits. Examples:\n"
+    "- A dragon flies over an army on a snowy battlefield -> combat\n"
+    "- Soldiers crawl through mud under gunfire -> combat\n"
+    "- A masked figure stalks someone in a dark corridor -> horror\n"
+    "- People dancing under colored lights in a club -> nightlife\n\n"
+    "mood: 1-3 moods justified by what's visible (expressions, action, "
+    "lighting, color). Avoid a generic default (e.g. dreamy) if a more "
+    "specific one fits. Examples:\n"
+    "- People laughing and dancing at a bright, colorful party -> joyful, triumphant\n"
+    "- A soldier crawling through mud under gunfire, gritted teeth -> tense, aggressive\n"
+    "- An old man alone on a park bench watching leaves fall -> melancholic, nostalgic\n"
+    "- A cat knocks a vase off a table and looks startled -> comic\n\n"
+    "English only, fixed categories only."
 )
 _SCENE_INSTRUCTION = (
     "These frames are evenly sampled from one video loop, in order. "
-    "Describe the scene."
+    "Classify the scene."
 )
 
 _MUSIC_SYSTEM_PROMPT = (
-    "You turn a short video scene description into a search query for "
-    "finding background music with a text-to-audio model (CLAP). CLAP was "
-    "trained on descriptions of SOUND, not of scenes: a query that "
-    "describes what happens in the video (a person, a place, an action) "
-    "retrieves irrelevant results. A query that describes the MUSIC itself "
-    "(genre or instruments, tempo, mood, vocals) works well.\n\n"
+    "Turn a video scene's setting and mood into a short search query for "
+    "background music (CLAP text-to-audio). Describe only the music — "
+    "genre, instruments, tempo — never the video's content.\n\n"
     "Examples:\n"
-    "Scene: a cat slowly stretches on a sunlit windowsill, mood calm/dreamy, "
-    "motion slow, not comic\n"
+    "Setting: nature, mood calm/dreamy, motion slow\n"
     "Query: slow dreamy ambient with soft piano and warm pads, instrumental\n\n"
-    "Scene: a skateboarder loses balance and comically tumbles onto grass, "
-    "mood comic/joyful, motion fast, comic\n"
+    "Setting: sports, mood comic/joyful, motion fast\n"
     "Query: upbeat quirky circus-style track with playful brass, instrumental\n\n"
-    "Scene: waves crash against dark rocks under a storm, mood tense/epic, "
-    "motion chaotic, not comic\n"
+    "Setting: combat, mood tense/epic, motion chaotic\n"
     "Query: intense cinematic orchestral with pounding drums and low brass, instrumental\n\n"
-    "Never mention anything from the video itself — no people, animals, "
-    "places, actions, objects, shapes, colors or patterns — describe only "
-    "the music, as if you had never seen the video, just a mood brief. Also "
-    "no artist names or track titles. Answer only in English, 5 to 20 words."
+    "Setting: nightlife, mood romantic/melancholic, motion moderate\n"
+    "Query: slow moody lounge jazz with warm saxophone and soft brushes, instrumental\n\n"
+    "No artist names or track titles. English only, 5 to 20 words."
 )
 _MUSIC_PROMPT = ChatPromptTemplate.from_messages(
     [
         ("system", _MUSIC_SYSTEM_PROMPT),
         (
             "human",
-            "Scene: {summary}, mood {mood}, motion {motion}, {comic_note}\nQuery:",
+            "Setting: {setting}, mood {mood}, motion {motion}\nQuery:",
         ),
     ]
 )
@@ -199,12 +212,10 @@ class OllamaSceneAnalyzer:
         return self._scene_chain.invoke(frames)
 
     def compose_music_query(self, scene: SceneDescription) -> MusicQuery:
-        comic_note = "the scene is comic/absurd" if scene.is_comic else "the scene is not comic"
         return self._music_chain.invoke(
             {
-                "summary": scene.summary,
+                "setting": scene.setting,
                 "mood": ", ".join(scene.mood),
                 "motion": scene.motion,
-                "comic_note": comic_note,
             }
         )

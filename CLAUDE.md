@@ -9,8 +9,9 @@
   `pyproject.toml` (обычные правки существующего кода — без вопросов).
 - Отвечать пользователю по-русски.
 - Схема БД управляется миграциями (см. ниже) — никогда не редактировать
-  задним числом уже применённый файл в `src/sound_loops/migrations/`;
+  задним числом уже применённый файл (комменты можно) в `src/sound_loops/migrations/`;
   изменение схемы — это всегда новый пронумерованный файл.
+- Комменты в коде должны быть компактные. Не писать в них ретро сведения.
 
 ## Что это за проект
 
@@ -97,14 +98,13 @@
   - **`analyze`** ([analysis.py](src/sound_loops/analysis.py)`::analyze_loop_by_path`):
     кадры лупа (`extract_frames` в [ffmpeg_utils.py](src/sound_loops/ffmpeg_utils.py),
     уменьшены до 448px) → VLM (Ollama, `qwen3-vl:4b-instruct` по
-    умолчанию, см. `VLM_*` в `config.py`) описывает смысл/настроение
-    (`SceneObservation` — без motion) → motion считается отдельно и
-    алгоритмически, через разницу соседних кадров, не VLM'ом (маленькая
-    модель почти всегда отвечала "static" даже на явно подвижных лупах —
-    см. [motion.py](src/sound_loops/motion.py), пороги калибровались на
-    реальных тестовых лупах, `MOTION_*` в `config.py`) → всё вместе
-    (`SceneDescription`) пишется в `video_analyses`, ключ кеша
-    `(loop_id, model, prompt_version)`.
+    умолчанию, см. `VLM_*` в `config.py`) даёт только закрытые категории
+    `setting`/`mood` (`SceneObservation`) — никакого свободного текста,
+    он рискует утечь в музыкальный запрос шага B. `motion` считается
+    отдельно и алгоритмически, через разницу соседних кадров, не VLM'ом
+    (см. [motion.py](src/sound_loops/motion.py), пороги — первое
+    приближение, `MOTION_*` в `config.py`) → всё вместе (`SceneDescription`)
+    пишется в `video_analyses`, ключ кеша `(loop_id, model, prompt_version)`.
   - **`match`** ([match.py](src/sound_loops/match.py)): шаг A не
     запускает вообще, только читает уже сохранённый анализ
     (`get_cached_analysis`) — если его нет, падает с `MatchError`

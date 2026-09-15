@@ -24,29 +24,39 @@ def test_music_query_rejects_too_long():
 
 def test_scene_observation_rejects_empty_mood():
     with pytest.raises(ValidationError):
-        SceneObservation(summary="a test scene", mood=[], is_comic=False)
+        SceneObservation(setting="domestic", mood=[])
 
 
 def test_scene_observation_rejects_too_many_moods():
     with pytest.raises(ValidationError):
-        SceneObservation(summary="a test scene", mood=["calm", "tense", "joyful", "epic"], is_comic=False)
+        SceneObservation(setting="domestic", mood=["calm", "tense", "joyful", "epic"])
 
 
 def test_scene_observation_dedupes_repeated_mood():
-    observation = SceneObservation(summary="a test scene", mood=["dreamy", "dreamy", "dreamy"], is_comic=False)
+    observation = SceneObservation(setting="domestic", mood=["dreamy", "dreamy", "dreamy"])
     assert observation.mood == ["dreamy"]
 
 
 def test_scene_observation_dedupes_while_preserving_order():
-    observation = SceneObservation(summary="a test scene", mood=["calm", "dreamy", "calm"], is_comic=False)
+    observation = SceneObservation(setting="domestic", mood=["calm", "dreamy", "calm"])
     assert observation.mood == ["calm", "dreamy"]
 
 
 def test_scene_observation_rejects_unknown_mood():
     with pytest.raises(ValidationError):
-        SceneObservation(summary="a test scene", mood=["euphoric"], is_comic=False)
+        SceneObservation(setting="domestic", mood=["euphoric"])
+
+
+def test_scene_observation_rejects_unknown_setting():
+    with pytest.raises(ValidationError):
+        SceneObservation(setting="underwater_basket_weaving", mood=["calm"])
 
 
 def test_scene_description_rejects_unknown_motion():
     with pytest.raises(ValidationError):
-        SceneDescription(summary="a test scene", motion="warp-speed", mood=["calm"], is_comic=False)
+        SceneDescription(setting="domestic", motion="warp-speed", mood=["calm"])
+
+
+def test_scene_description_rejects_unknown_setting():
+    with pytest.raises(ValidationError):
+        SceneDescription(setting="underwater_basket_weaving", motion="slow", mood=["calm"])

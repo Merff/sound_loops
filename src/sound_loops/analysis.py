@@ -30,15 +30,15 @@ def get_cached_analysis(
 ) -> AnalysisRecord | None:
     row = conn.execute(
         """
-        SELECT id, summary, motion, mood, is_comic FROM video_analyses
+        SELECT id, setting, motion, mood FROM video_analyses
         WHERE loop_id = %s AND model = %s AND prompt_version = %s
         """,
         (loop_id, model, prompt_version),
     ).fetchone()
     if row is None:
         return None
-    analysis_id, summary, motion, mood, is_comic = row
-    return AnalysisRecord(analysis_id, SceneDescription(summary=summary, motion=motion, mood=mood, is_comic=is_comic))
+    analysis_id, setting, motion, mood = row
+    return AnalysisRecord(analysis_id, SceneDescription(setting=setting, motion=motion, mood=mood))
 
 
 def save_analysis(
@@ -50,11 +50,11 @@ def save_analysis(
 ) -> AnalysisRecord:
     row = conn.execute(
         """
-        INSERT INTO video_analyses (loop_id, model, prompt_version, summary, motion, mood, is_comic)
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
+        INSERT INTO video_analyses (loop_id, model, prompt_version, setting, motion, mood)
+        VALUES (%s, %s, %s, %s, %s, %s)
         RETURNING id
         """,
-        (loop_id, model, prompt_version, scene.summary, scene.motion, scene.mood, scene.is_comic),
+        (loop_id, model, prompt_version, scene.setting, scene.motion, scene.mood),
     ).fetchone()
     conn.commit()
     return AnalysisRecord(row[0], scene)
@@ -78,12 +78,7 @@ def analyze_loop(
         return cached, True
 
     observation = analyzer.describe_scene(get_frames())
-    scene = SceneDescription(
-        summary=observation.summary,
-        motion=get_motion(),
-        mood=observation.mood,
-        is_comic=observation.is_comic,
-    )
+    scene = SceneDescription(setting=observation.setting, motion=get_motion(), mood=observation.mood)
     return save_analysis(conn, loop_id, analyzer.model_id, analyzer.prompt_version, scene), False
 
 

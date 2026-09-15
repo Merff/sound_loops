@@ -161,7 +161,7 @@ class FakeSceneAnalyzer:
 
     def describe_scene(self, frames) -> SceneObservation:
         self.describe_calls += 1
-        return SceneObservation(summary="a test scene", mood=["calm"], is_comic=False)
+        return SceneObservation(setting="domestic", mood=["calm"])
 
     def compose_music_query(self, scene: SceneDescription) -> MusicQuery:
         self.compose_calls += 1

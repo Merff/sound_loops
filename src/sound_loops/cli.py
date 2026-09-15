@@ -118,7 +118,7 @@ def search_cmd(query: str, top_n: int, export_dir: Path | None) -> None:
     help="Путь к конкретному лупу. Без флага берётся случайный луп из базы.",
 )
 def analyze_cmd(loop_path: Path | None) -> None:
-    """VLM-анализ сцены лупа (описание, настроение, motion) -> video_analyses."""
+    """VLM-анализ сцены лупа (обстановка, настроение, motion) -> video_analyses."""
     settings = load_settings()
 
     from sound_loops.analysis import analyze_loop_by_path
@@ -132,10 +132,9 @@ def analyze_cmd(loop_path: Path | None) -> None:
     scene = record.scene
     cache_note = " (уже был в кеше)" if cached else ""
     click.echo(f"Луп: {loop.path}")
-    click.echo(f"Сцена{cache_note}: {scene.summary}")
-    click.echo(f"Движение: {scene.motion}; настроение: {', '.join(scene.mood)}")
-    if scene.is_comic:
-        click.echo("Комично: да")
+    click.echo(
+        f"Обстановка{cache_note}: {scene.setting}; движение: {scene.motion}; настроение: {', '.join(scene.mood)}"
+    )
 
 
 @cli.command("match")
@@ -166,10 +165,7 @@ def match_cmd(loop_path: Path | None) -> None:
 
     scene = result.analysis.scene
     click.echo(f"Луп: {result.loop.path}")
-    click.echo(f"Сцена: {scene.summary}")
-    click.echo(f"Движение: {scene.motion}; настроение: {', '.join(scene.mood)}")
-    if scene.is_comic:
-        click.echo("Комично: да")
+    click.echo(f"Обстановка: {scene.setting}; движение: {scene.motion}; настроение: {', '.join(scene.mood)}")
     click.echo(f"Музыкальный запрос: {result.music_query}")
     click.echo("Топ-3 кандидата:")
     for rank, r in enumerate(result.candidates, start=1):

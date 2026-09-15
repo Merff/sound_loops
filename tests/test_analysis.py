@@ -19,7 +19,7 @@ def test_get_cached_analysis_returns_none_when_absent(db_conn):
 
 def test_save_and_get_cached_analysis_round_trips(db_conn):
     loop_id = _insert_loop(db_conn)
-    scene = SceneDescription(summary="a cat stretches", motion="slow", mood=["calm", "dreamy"], is_comic=False)
+    scene = SceneDescription(setting="domestic", motion="slow", mood=["calm", "dreamy"])
 
     saved = save_analysis(db_conn, loop_id, "model-a", "v1", scene)
     cached = get_cached_analysis(db_conn, loop_id, "model-a", "v1")
@@ -31,7 +31,7 @@ def test_save_and_get_cached_analysis_round_trips(db_conn):
 
 def test_get_cached_analysis_ignores_different_model_or_prompt_version(db_conn):
     loop_id = _insert_loop(db_conn)
-    scene = SceneDescription(summary="a cat stretches", motion="slow", mood=["calm"], is_comic=False)
+    scene = SceneDescription(setting="domestic", motion="slow", mood=["calm"])
     save_analysis(db_conn, loop_id, "model-a", "v1", scene)
 
     assert get_cached_analysis(db_conn, loop_id, "model-b", "v1") is None

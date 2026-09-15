@@ -24,8 +24,8 @@ def _insert_track(conn, path: str = "track.mp3", duration_seconds: float = 5.0) 
 def _insert_analysis(conn, loop_id: int, model: str = "model-a", prompt_version: str = "v1") -> int:
     row = conn.execute(
         """
-        INSERT INTO video_analyses (loop_id, model, prompt_version, summary, motion, mood, is_comic)
-        VALUES (%s, %s, %s, 'a test scene', 'slow', %s, false)
+        INSERT INTO video_analyses (loop_id, model, prompt_version, setting, motion, mood)
+        VALUES (%s, %s, %s, 'domestic', 'slow', %s)
         RETURNING id
         """,
         (loop_id, model, prompt_version, ["calm"]),
