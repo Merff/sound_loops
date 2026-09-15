@@ -7,7 +7,7 @@ from sound_loops.config import Settings
 def test_defaults_are_valid():
     settings = Settings(database_url="postgresql://localhost/sound_loops")
     assert settings.min_loop_seconds == 3.0
-    assert settings.max_loop_seconds == 10.0
+    assert settings.max_loop_seconds == 11.0
     assert settings.fade_seconds == 0.3
 
 

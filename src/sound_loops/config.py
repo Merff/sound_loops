@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     output_dir: Path = Path("data/renders")
 
     min_loop_seconds: float = 3.0
-    max_loop_seconds: float = 10.0
+    max_loop_seconds: float = 11.0
 
     fade_seconds: float = 0.3
 
