@@ -45,9 +45,10 @@
   [maintenance.py](src/sound_loops/maintenance.py)); `clap-check`
   ([cli.py](src/sound_loops/cli.py)). Через `make` см. `Makefile`
   (`sync`, `init-db`, `ingest`, `render`, `render-loop LOOP=...`,
-  `index`, `search QUERY=...`, `analyze`, `analyze-loop LOOP=...`,
-  `match`, `match-loop LOOP=...`, `clear-renders`, `clear-analyses`,
-  `clap-check`, `test`, `lint`, `clean`).
+  `index`, `search QUERY=...`, `analyze`/`match` — гоняют CLI-команду по
+  очереди на **всех** `data/loops/*.mp4`, для одного лупа —
+  `analyze-loop LOOP=...`/`match-loop LOOP=...`, `clear-renders`,
+  `clear-analyses`, `clap-check`, `test`, `lint`, `clean`).
 - **Конфиг**: `pydantic-settings`, читает `.env` ([config.py](src/sound_loops/config.py)).
 - **БД**: Postgres, драйвер `psycopg` v3 (не psycopg2), без ORM — везде
   сырой SQL через `conn.execute(...)`. Схема управляется

@@ -36,11 +36,11 @@ search:
 	fi
 	uv run sound-loops search "$(QUERY)" $(if $(EXPORT),--export-dir $(EXPORT),)
 
-# VLM-анализ сцены случайного лупа (описание, настроение, motion) -> video_analyses
+# VLM-анализ сцены всех лупов в data/loops (описание, настроение, motion) -> video_analyses
 analyze:
-	uv run sound-loops analyze
+	for f in data/loops/*.mp4; do uv run sound-loops analyze --loop "$$f"; done
 
-# То же самое для конкретного лупа: make analyze-loop LOOP=data/loops/my_loop.mp4
+# То же самое для одного конкретного лупа: make analyze-loop LOOP=data/loops/my_loop.mp4
 analyze-loop:
 	@if [ -z "$(LOOP)" ]; then \
 		echo "Укажи LOOP=путь/к/лупу.mp4, например: make analyze-loop LOOP=data/loops/my_loop.mp4"; \
@@ -48,11 +48,11 @@ analyze-loop:
 	fi
 	uv run sound-loops analyze --loop $(LOOP)
 
-# Подобрать музыку под уже проанализированный случайный луп (см. analyze) + CLAP-поиск
+# Подобрать музыку для всех уже проанализированных лупов в data/loops (см. analyze) + CLAP-поиск
 match:
-	uv run sound-loops match
+	for f in data/loops/*.mp4; do uv run sound-loops match --loop "$$f"; done
 
-# То же самое для конкретного лупа: make match-loop LOOP=data/loops/my_loop.mp4
+# То же самое для одного конкретного лупа: make match-loop LOOP=data/loops/my_loop.mp4
 match-loop:
 	@if [ -z "$(LOOP)" ]; then \
 		echo "Укажи LOOP=путь/к/лупу.mp4, например: make match-loop LOOP=data/loops/my_loop.mp4"; \
@@ -61,8 +61,8 @@ match-loop:
 	uv run sound-loops match --loop $(LOOP)
 
 # Удалить все рендеры — из базы и файлы с диска. video_analyses не трогает
-clear-renders:
-	uv run sound-loops clear-renders
+# clear-renders:
+# 	uv run sound-loops clear-renders
 
 # Удалить все анализы сцен и рендеры, сделанные по ним (БД + файлы)
 clear-analyses:
