@@ -35,12 +35,10 @@ class Settings(BaseSettings):
     vlm_frame_count: int = 5
     vlm_frame_max_side: int = 448
     # Ollama по умолчанию режет контекст до 4096 токенов — с 5 кадрами по
-    # 448px этого не хватает (получили exceed_context_size_error на
-    # реальном прогоне), поднимаем явно.
+    # 448px этого не хватает, поднимаем явно.
     vlm_context_length: int = 16384
 
-    # Motion считается алгоритмически (motion.py), не через VLM — см.
-    # docs/sound_loops-iteration-2.md и motion.py про калибровку порогов.
+    # Motion считается алгоритмически (motion.py), не через VLM.
     motion_sample_fps: float = 8.0
     motion_frame_size: int = 64
 

@@ -89,8 +89,7 @@ def analyze_loop_by_path(
     loop_path: Path | None = None,
 ) -> tuple[LoopRow, AnalysisRecord, bool]:
     """Разрешить луп (по пути или случайный) и прогнать analyze_loop с реальным
-    извлечением кадров/оценкой motion. Общая точка входа команды `analyze`
-    и шага A команды `match` (см. match.py)."""
+    извлечением кадров/оценкой motion. Точка входа команды `analyze`."""
     loop = get_loop_by_path(conn, loop_path, settings) if loop_path else get_random_loop(conn)
 
     def get_frames() -> list[bytes]:
