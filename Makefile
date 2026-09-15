@@ -36,7 +36,7 @@ search:
 	fi
 	uv run sound-loops search "$(QUERY)" $(if $(EXPORT),--export-dir $(EXPORT),)
 
-# VLM-анализ сцены всех лупов в data/loops (описание, настроение, motion) -> video_analyses
+# VLM-анализ сцены всех лупов в data/loops (setting, mood, motion) -> video_analyses
 analyze:
 	for f in data/loops/*.mp4; do uv run sound-loops analyze --loop "$$f"; done
 

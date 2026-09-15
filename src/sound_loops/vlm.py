@@ -148,19 +148,29 @@ _SCENE_INSTRUCTION = (
     "Classify the scene."
 )
 
+# Жанровые теги реально проиндексированного FMA_small (см. tracks.genre) —
+# без этого шаг B тянется к orchestral/cinematic, которых в библиотеке нет.
+_LIBRARY_GENRES = "Electronic, Rock, Hip-Hop, Pop, Folk, International, Experimental, Instrumental"
+
 _MUSIC_SYSTEM_PROMPT = (
     "Turn a video scene's setting and mood into a short search query for "
     "background music (CLAP text-to-audio). Describe only the music — "
     "genre, instruments, tempo — never the video's content.\n\n"
+    f"The music library only has these genres: {_LIBRARY_GENRES}. Frame the "
+    "genre/instruments part of the query using one of them (or close to "
+    "it) — never say orchestral, cinematic, soundtrack, or symphonic, "
+    "those don't exist here. Translate the mood into the closest available "
+    "genre instead (e.g. an intense battle scene -> aggressive industrial "
+    "electronic or heavy rock, not orchestral).\n\n"
     "Examples:\n"
     "Setting: nature, mood calm/dreamy, motion slow\n"
-    "Query: slow dreamy ambient with soft piano and warm pads, instrumental\n\n"
+    "Query: slow dreamy folk instrumental with soft acoustic guitar and warm pads\n\n"
     "Setting: sports, mood comic/joyful, motion fast\n"
-    "Query: upbeat quirky circus-style track with playful brass, instrumental\n\n"
-    "Setting: combat, mood tense/epic, motion chaotic\n"
-    "Query: intense cinematic orchestral with pounding drums and low brass, instrumental\n\n"
+    "Query: upbeat quirky electronic track with playful synth and a bouncy beat, instrumental\n\n"
+    "Setting: combat, mood tense/aggressive, motion chaotic\n"
+    "Query: aggressive industrial electronic with distorted bass and a pounding beat, instrumental\n\n"
     "Setting: nightlife, mood romantic/melancholic, motion moderate\n"
-    "Query: slow moody lounge jazz with warm saxophone and soft brushes, instrumental\n\n"
+    "Query: slow moody electronic with warm synth pads and a soft beat, instrumental\n\n"
     "No artist names or track titles. English only, 5 to 20 words."
 )
 _MUSIC_PROMPT = ChatPromptTemplate.from_messages(
