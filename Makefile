@@ -1,4 +1,4 @@
-.PHONY: sync init-db ingest render render-loop index search analyze analyze-loop match match-loop clear-renders clear-analyses clap-check test lint clean
+.PHONY: sync init-db ingest render render-loop index search analyze analyze-loop match match-loop eval-run eval-run-loop eval-compare blind-eval clear-renders clear-analyses clap-check test lint clean
 
 # Установить зависимости проекта
 sync:
@@ -60,9 +60,33 @@ match-loop:
 	fi
 	uv run sound-loops match --loop $(LOOP)
 
+# Прогнать эвал по всему evals/dataset.json, напечатать метрики и сохранить прогон
+eval-run:
+	uv run sound-loops eval-run
+
+# То же самое для одного лупа из разметки: make eval-run-loop LOOP=data/loops/my_loop.mp4
+eval-run-loop:
+	@if [ -z "$(LOOP)" ]; then \
+		echo "Укажи LOOP=путь/к/лупу.mp4, как он записан в evals/dataset.json"; \
+		exit 1; \
+	fi
+	uv run sound-loops eval-run --loop $(LOOP)
+
+# Сравнить два сохранённых прогона: make eval-compare A=evals/runs/x.json B=evals/runs/y.json
+eval-compare:
+	@if [ -z "$(A)" ] || [ -z "$(B)" ]; then \
+		echo "Укажи A=evals/runs/... B=evals/runs/..."; \
+		exit 1; \
+	fi
+	uv run sound-loops eval-compare $(A) $(B)
+
+# Слепое сравнение пайплайна со случайным baseline на всём наборе разметки
+blind-eval:
+	uv run sound-loops blind-eval
+
 # Удалить все рендеры — из базы и файлы с диска. video_analyses не трогает
-# clear-renders:
-# 	uv run sound-loops clear-renders
+clear-renders:
+	uv run sound-loops clear-renders
 
 # Удалить все анализы сцен и рендеры, сделанные по ним (БД + файлы)
 clear-analyses:

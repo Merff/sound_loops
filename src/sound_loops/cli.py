@@ -1,4 +1,5 @@
-"""Точка входа: sound-loops init-db|ingest|render|index|search|analyze|match|clear-renders|clear-analyses|clap-check."""
+"""Точка входа: sound-loops init-db|ingest|render|index|search|analyze|match|
+eval-run|eval-compare|blind-eval|clear-renders|clear-analyses|clap-check."""
 
 from __future__ import annotations
 
@@ -124,7 +125,9 @@ def analyze_cmd(loop_path: Path | None) -> None:
     from sound_loops.analysis import analyze_loop_by_path
     from sound_loops.vlm import OllamaSceneAnalyzer
 
-    analyzer = OllamaSceneAnalyzer(settings.vlm_model, settings.vlm_base_url, settings.vlm_context_length)
+    analyzer = OllamaSceneAnalyzer(
+        settings.vlm_model, settings.vlm_base_url, settings.vlm_context_length, settings.vlm_temperature
+    )
 
     with connect(settings.database_url) as conn:
         loop, record, cached = analyze_loop_by_path(conn, analyzer, settings, loop_path)
@@ -158,7 +161,9 @@ def match_cmd(loop_path: Path | None) -> None:
     from sound_loops.vlm import OllamaSceneAnalyzer
 
     embedder = ClapEmbedder(settings.clap_checkpoint, settings.clap_device)
-    analyzer = OllamaSceneAnalyzer(settings.vlm_model, settings.vlm_base_url, settings.vlm_context_length)
+    analyzer = OllamaSceneAnalyzer(
+        settings.vlm_model, settings.vlm_base_url, settings.vlm_context_length, settings.vlm_temperature
+    )
 
     with connect(settings.database_url) as conn:
         result = match_once(conn, analyzer, embedder, settings, loop_path)
@@ -172,6 +177,95 @@ def match_cmd(loop_path: Path | None) -> None:
         title = r.title or Path(r.path).name
         click.echo(f"  {rank}. {r.similarity:.3f}  {title} — {r.artist or '?'}  [{r.path}]")
     click.echo(str(result.output_path))
+
+
+@cli.command("eval-run")
+@click.option(
+    "--loop", "loop_filter", type=str, default=None, help="Прогнать только один луп (путь как в разметке)."
+)
+def eval_run_cmd(loop_filter: str | None) -> None:
+    """Прогнать пайплайн по evals/dataset.json, посчитать метрики и сохранить прогон."""
+    settings = load_settings()
+
+    from sound_loops.eval_dataset import load_dataset
+
+    dataset = load_dataset(settings.eval_dataset_path)
+    if loop_filter is not None:
+        dataset = [entry for entry in dataset if entry.loop == loop_filter]
+        if not dataset:
+            raise click.ClickException(f"лупа {loop_filter!r} нет в {settings.eval_dataset_path}")
+    if not dataset:
+        raise click.ClickException(f"{settings.eval_dataset_path} пуст — сначала разметьте набор лупов")
+
+    from sound_loops.hf_cache import ensure_offline_if_cached
+
+    ensure_offline_if_cached(settings.clap_checkpoint)
+
+    from sound_loops.clap import ClapEmbedder
+    from sound_loops.eval_run import run_eval, save_run
+    from sound_loops.vlm import OllamaSceneAnalyzer
+
+    embedder = ClapEmbedder(settings.clap_checkpoint, settings.clap_device)
+    analyzer = OllamaSceneAnalyzer(
+        settings.vlm_model, settings.vlm_base_url, settings.vlm_context_length, temperature=0.0
+    )
+
+    with connect(settings.database_url) as conn:
+        run = run_eval(conn, analyzer, embedder, settings, dataset, temperature=0.0)
+
+    run.print_summary()
+    path = save_run(run, settings.eval_runs_dir)
+    click.echo(f"Сохранено: {path}")
+
+
+@cli.command("eval-compare")
+@click.argument("run_a", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.argument("run_b", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+def eval_compare_cmd(run_a: Path, run_b: Path) -> None:
+    """Сравнить два прогона эвала: агрегаты и разница по каждому лупу."""
+    from sound_loops.eval_compare import compare_runs, print_compare
+    from sound_loops.eval_run import load_run
+
+    print_compare(compare_runs(load_run(run_a), load_run(run_b)))
+
+
+@cli.command("blind-eval")
+def blind_eval_cmd() -> None:
+    """Слепое сравнение пайплайна со случайным baseline на всём наборе разметки."""
+    settings = load_settings()
+
+    from sound_loops.eval_dataset import load_dataset
+
+    dataset = load_dataset(settings.eval_dataset_path)
+    if not dataset:
+        raise click.ClickException(f"{settings.eval_dataset_path} пуст — сначала разметьте набор лупов")
+
+    from sound_loops.hf_cache import ensure_offline_if_cached
+
+    ensure_offline_if_cached(settings.clap_checkpoint)
+
+    from sound_loops.blind import prepare_pairs, save_blind_run, score_pairs
+    from sound_loops.clap import ClapEmbedder
+    from sound_loops.vlm import OllamaSceneAnalyzer
+
+    embedder = ClapEmbedder(settings.clap_checkpoint, settings.clap_device)
+    analyzer = OllamaSceneAnalyzer(
+        settings.vlm_model, settings.vlm_base_url, settings.vlm_context_length, temperature=0.0
+    )
+
+    with connect(settings.database_url) as conn:
+        pairs = prepare_pairs(conn, analyzer, embedder, settings, dataset)
+
+    def ask(pair) -> str:
+        click.echo(f"\nЛуп: {pair.loop}")
+        click.echo(f"  A: {pair.path_a}")
+        click.echo(f"  B: {pair.path_b}")
+        return click.prompt("Какой вариант лучше подходит?", type=click.Choice(["A", "B", "tie"]))
+
+    run = score_pairs(pairs, ask)
+    path = save_blind_run(run, settings.eval_blind_runs_dir)
+    click.echo(f"\nPipeline win rate: {run.pipeline_win_rate:.0%} (из решительных ответов, без учёта ничьих)")
+    click.echo(f"Сохранено: {path}")
 
 
 @cli.command("clear-renders")

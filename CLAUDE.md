@@ -31,6 +31,11 @@
   для поиска формулирует не человек, а VLM, посмотрев на кадры лупа.
   Принята: на слепом сравнении новая цепочка немного лучше случайного
   baseline'а.
+- Итерация 3 (план: [docs/sound_loops-iteration-3.md](docs/sound_loops-iteration-3.md),
+  в разработке) не добавляет функциональность — делает измеримым то, что
+  уже есть: размеченный набор лупов, команда эвала с метриками,
+  сравнение прогонов, слепой тест. Baseline пока не записан (разметка
+  пустая, см. README).
 
 ## Как всё устроено (актуально, а не по брифу)
 
@@ -44,13 +49,16 @@
   трогает) и `clear-analyses` (БД, каскадно тянет за собой рендеры,
   сделанные по этим анализам — `renders.analysis_id IS NOT NULL` — и их
   файлы; baseline-рендеры итерации 0 не трогает,
-  [maintenance.py](src/sound_loops/maintenance.py)); `clap-check`
+  [maintenance.py](src/sound_loops/maintenance.py)); `clap-check`;
+  `eval-run [--loop PATH]` (метрики по `evals/dataset.json`),
+  `eval-compare RUN_A RUN_B`, `blind-eval` (итерация 3, см. ниже)
   ([cli.py](src/sound_loops/cli.py)). Через `make` см. `Makefile`
   (`sync`, `init-db`, `ingest`, `render`, `render-loop LOOP=...`,
   `index`, `search QUERY=...`, `analyze`/`match` — гоняют CLI-команду по
   очереди на **всех** `data/loops/*.mp4`, для одного лупа —
-  `analyze-loop LOOP=...`/`match-loop LOOP=...`, `clear-renders`,
-  `clear-analyses`, `clap-check`, `test`, `lint`, `clean`).
+  `analyze-loop LOOP=...`/`match-loop LOOP=...`, `eval-run`,
+  `eval-run-loop LOOP=...`, `eval-compare A=... B=...`, `blind-eval`,
+  `clear-renders`, `clear-analyses`, `clap-check`, `test`, `lint`, `clean`).
 - **Конфиг**: `pydantic-settings`, читает `.env` ([config.py](src/sound_loops/config.py)).
 - **БД**: Postgres, драйвер `psycopg` v3 (не psycopg2), без ORM — везде
   сырой SQL через `conn.execute(...)`. Схема управляется
@@ -122,6 +130,20 @@
   - **`VLM_CONTEXT_LENGTH` (по умолчанию 16384) — не понижать**: дефолтный
     контекст Ollama в 4096 токенов не вмещает промпт с 5 кадрами по 448px
     (`exceed_context_size_error` на реальном прогоне).
+- **Эвал** (итерация 3): `evals/dataset.json` — разметка (pydantic-схема
+  в [eval_dataset.py](src/sound_loops/eval_dataset.py), делается руками,
+  автоматически не заполняется). `eval-run` ([eval_run.py](src/sound_loops/eval_run.py))
+  не дублирует пайплайн — вызывает `analyze_loop`/`compose_music_query`/
+  `search_tracks` напрямую, в `renders` не пишет (аудио не рендерит).
+  Оба вызова VLM в `eval-run`/`blind-eval` жёстко фиксируют
+  `temperature=0` (параметр добавлен в `OllamaSceneAnalyzer` и
+  `VLM_TEMPERATURE` в конфиге; `analyze`/`match` его не трогают, там
+  дефолт Ollama). `eval-compare` ([eval_compare.py](src/sound_loops/eval_compare.py))
+  сравнивает два сохранённых прогона, ухудшившиеся лупы — первыми.
+  `blind-eval` ([blind.py](src/sound_loops/blind.py)) — метрика 3,
+  переиспользует `match_once`/`render_once` как есть (пишут в
+  `renders`/`video_analyses` обычным образом, отдельного пути без БД для
+  слепого теста не заводили).
 
 ## Тесты
 
@@ -157,9 +179,11 @@
 ## Данные и датасет
 
 - `data/` целиком в `.gitignore`, ничего оттуда не коммитить.
-- Настоящих лупов ещё нет (готовятся вручную вне проекта) — если нужно
-  что-то для ручной проверки, генерировать через `ffmpeg -f lavfi`
-  (testsrc/mandelbrot/smptebars/life/rgbtestsrc/gradients с `-t N`).
+- В `data/loops/` сейчас 10 настоящих лупов (готовятся вручную вне
+  проекта) — для эвала (итерация 3) нужно ~30, разнообразных. Если нужно
+  что-то для быстрой ручной проверки помимо них, генерировать через
+  `ffmpeg -f lavfi` (testsrc/mandelbrot/smptebars/life/rgbtestsrc/gradients
+  с `-t N`).
 - FMA (`fma_small.zip` ~7.7ГиБ, `fma_metadata.zip` ~358МиБ) на
   `https://os.unil.cloud.switch.ch/fma/` поддерживает HTTP Range —
   **не скачивать архивы целиком**, если нужно только несколько

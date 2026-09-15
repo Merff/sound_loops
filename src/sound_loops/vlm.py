@@ -207,9 +207,12 @@ class OllamaSceneAnalyzer:
 
     prompt_version = PROMPT_VERSION
 
-    def __init__(self, model: str, base_url: str, context_length: int) -> None:
+    def __init__(
+        self, model: str, base_url: str, context_length: int, temperature: float | None = None
+    ) -> None:
         self.model_id = model
-        chat = ChatOllama(model=model, base_url=base_url, num_ctx=context_length)
+        chat_kwargs = {} if temperature is None else {"temperature": temperature}
+        chat = ChatOllama(model=model, base_url=base_url, num_ctx=context_length, **chat_kwargs)
 
         self._scene_chain = (
             RunnableLambda(_scene_messages) | chat.with_structured_output(SceneObservation)

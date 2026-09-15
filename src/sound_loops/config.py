@@ -37,6 +37,14 @@ class Settings(BaseSettings):
     # Ollama по умолчанию режет контекст до 4096 токенов — с 5 кадрами по
     # 448px этого не хватает, поднимаем явно.
     vlm_context_length: int = 16384
+    # None = температура Ollama по умолчанию. Команды эвала (eval-run,
+    # blind-eval) всегда используют 0.0 сами, это только для analyze/match.
+    vlm_temperature: float | None = None
+
+    eval_dataset_path: Path = Path("evals/dataset.json")
+    eval_runs_dir: Path = Path("evals/runs")
+    eval_blind_runs_dir: Path = Path("evals/blind_runs")
+    eval_search_depth: int = 500
 
     # Motion считается алгоритмически (motion.py), не через VLM.
     motion_sample_fps: float = 8.0
