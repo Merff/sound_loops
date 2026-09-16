@@ -26,36 +26,41 @@ from pydantic import BaseModel, Field, field_validator
 # Часть ключа кеша в video_analyses (см. analysis.py) — менять при любой
 # правке текста промптов/схемы ниже, иначе в базе смешаются результаты
 # старой и новой формулировки без возможности их различить.
-PROMPT_VERSION = "v7"
+PROMPT_VERSION = "v8"
 
 Motion = Literal["static", "slow", "moderate", "fast", "chaotic"]
 Mood = Literal[
-    "calm",
-    "tense",
-    "joyful",
-    "melancholic",
-    "epic",
-    "comic",
-    "eerie",
-    "romantic",
-    "aggressive",
-    "nostalgic",
-    "dreamy",
-    "triumphant",
+    "calm",  # спокойное
+    "tense",  # напряжённое
+    "joyful",  # радостное
+    "melancholic",  # меланхоличное
+    "epic",  # эпичное
+    "comic",  # комичное
+    "eerie",  # жуткое
+    "romantic",  # романтичное
+    "aggressive",  # агрессивное
+    "nostalgic",  # ностальгическое
+    "dreamy",  # мечтательное
+    "triumphant",  # триумфальное
+    "tragic",  # трагичное
+    "festive",  # праздничное
 ]
 Setting = Literal[
-    "combat",
-    "horror",
-    "domestic",
-    "nature",
-    "scifi_fantasy",
-    "sports",
-    "romance",
-    "nightlife",
-    "performance",
-    "urban",
-    "abstract",
+    "combat",  # бой/сражение
+    "horror",  # ужасы
+    "domestic",  # быт/дом
+    "nature",  # природа
+    "scifi_fantasy",  # фантастика/фэнтези
+    "sports",  # спорт
+    "romance",  # романтика
+    "nightlife",  # ночная жизнь/клубы
+    "performance",  # выступление/сцена
+    "urban",  # город
+    "abstract",  # абстрактное/небытовое
 ]
+
+# vocals = ["instrumental", "vocals_ok", "any"]
+# tempo = ["slow", "mid", "fast"]
 
 
 class SceneObservation(BaseModel):
