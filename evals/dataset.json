@@ -13,28 +13,26 @@
   },
   {
     "loop": "data/loops/loop-2.mp4",
-    "setting": "TODO",
-    "tempo": "TODO",
+    "setting": "domestic",
+    "tempo": "mid",
     "mood": [
-      "TODO"
+      "tense"
     ],
-    "vocals": "TODO",
+    "vocals": "vocals_ok",
     "good_tracks": [
-      "data/raw/fma_small/111/900002.mp3",
-      "TODO"
+      "data/raw/fma_small/111/900002.mp3"
     ]
   },
   {
     "loop": "data/loops/loop-3.mp4",
-    "setting": "TODO",
-    "tempo": "TODO",
+    "setting": "nature",
+    "tempo": "fast",
     "mood": [
-      "TODO"
+      "melancholic", "dreamy"
     ],
-    "vocals": "TODO",
+    "vocals": "instrumental",
     "good_tracks": [
-      "data/raw/fma_small/111/900003.mp3",
-      "TODO"
+      "data/raw/fma_small/111/900003.mp3"
     ]
   },
   {
@@ -99,15 +97,14 @@
   },
   {
     "loop": "data/loops/loop-9.mp4",
-    "setting": "TODO",
-    "tempo": "TODO",
+    "setting": "abstract",
+    "tempo": "fast",
     "mood": [
-      "TODO"
+      "epic", "aggressive"
     ],
-    "vocals": "TODO",
+    "vocals": "instrumental",
     "good_tracks": [
-      "data/raw/fma_small/111/900009.mp3",
-      "TODO"
+      "data/raw/fma_small/111/900009.mp3"
     ]
   },
   {
@@ -124,28 +121,26 @@
   },
   {
     "loop": "data/loops/loop-11.mp4",
-    "setting": "TODO",
-    "tempo": "TODO",
+    "setting": "urban",
+    "tempo": "mid",
     "mood": [
-      "TODO"
+      "comic"
     ],
-    "vocals": "TODO",
+    "vocals": "any",
     "good_tracks": [
-      "data/raw/fma_small/111/900011.mp3",
-      "TODO"
+      "data/raw/fma_small/111/900011.mp3"
     ]
   },
   {
     "loop": "data/loops/loop-12.mp4",
-    "setting": "TODO",
-    "tempo": "TODO",
+    "setting": "nature",
+    "tempo": "slow",
     "mood": [
-      "TODO"
+      "melancholic", "dreamy"
     ],
-    "vocals": "TODO",
+    "vocals": "instrumental",
     "good_tracks": [
-      "data/raw/fma_small/111/900012.mp3",
-      "TODO"
+      "data/raw/fma_small/111/900012.mp3"
     ]
   },
   {
