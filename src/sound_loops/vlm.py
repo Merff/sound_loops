@@ -26,7 +26,7 @@ from pydantic import BaseModel, Field, field_validator
 # Часть ключа кеша в video_analyses (см. analysis.py) — менять при любой
 # правке текста промптов/схемы ниже, иначе в базе смешаются результаты
 # старой и новой формулировки без возможности их различить.
-PROMPT_VERSION = "v7"
+PROMPT_VERSION = "v8"
 
 Motion = Literal["static", "slow", "moderate", "fast", "chaotic"]
 Mood = Literal[
@@ -131,20 +131,26 @@ _SCENE_SYSTEM_PROMPT = (
     "order. Classify it so someone else can pick fitting background music "
     "without seeing the video.\n\n"
     "setting: closest genre/setting category from the fixed list — decides "
-    "the music's genre. Avoid a generic default (e.g. domestic) if a more "
-    "specific one fits. Examples:\n"
+    "the music's genre. Pick only what the frames actually show — don't "
+    "fall back to a familiar-sounding category (domestic, combat, urban, "
+    "etc.) just because nothing else jumps out. Examples:\n"
     "- A dragon flies over an army on a snowy battlefield -> combat\n"
-    "- Soldiers crawl through mud under gunfire -> combat\n"
     "- A masked figure stalks someone in a dark corridor -> horror\n"
     "- People dancing under colored lights in a club -> nightlife\n"
-    "- Daytime traffic and pedestrians crossing a city street -> urban\n\n"
+    "- Daytime traffic and pedestrians crossing a city street -> urban\n"
+    "- Colorful shapes morph and pulse with no recognizable subject -> abstract\n"
+    "- A singer performs on a lit stage in front of a crowd -> performance\n\n"
     "mood: 1-3 moods justified by what's visible (expressions, action, "
-    "lighting, color). Avoid a generic default (e.g. dreamy) if a more "
-    "specific one fits. Examples:\n"
+    "lighting, color). Pick only what's actually visible — don't default to "
+    "a familiar mood (joyful, tense, melancholic, etc.) when the scene "
+    "doesn't clearly show it. Examples:\n"
     "- People laughing and dancing at a bright, colorful party -> joyful, triumphant\n"
     "- A soldier crawling through mud under gunfire, gritted teeth -> tense, aggressive\n"
     "- An old man alone on a park bench watching leaves fall -> melancholic, nostalgic\n"
-    "- A cat knocks a vase off a table and looks startled -> comic\n\n"
+    "- A cat knocks a vase off a table and looks startled -> comic\n"
+    "- A hero raises a sword as armies clash beneath a fiery sky -> epic\n"
+    "- Confetti falls as people cheer and raise glasses at a celebration -> festive\n"
+    "- A single wilted flower lies beside an empty picture frame -> tragic\n\n"
     "English only, fixed categories only."
 )
 _SCENE_INSTRUCTION = (
