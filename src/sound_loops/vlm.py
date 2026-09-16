@@ -26,7 +26,7 @@ from pydantic import BaseModel, Field, field_validator
 # Часть ключа кеша в video_analyses (см. analysis.py) — менять при любой
 # правке текста промптов/схемы ниже, иначе в базе смешаются результаты
 # старой и новой формулировки без возможности их различить.
-PROMPT_VERSION = "v6"
+PROMPT_VERSION = "v7"
 
 Motion = Literal["static", "slow", "moderate", "fast", "chaotic"]
 Mood = Literal[
@@ -53,6 +53,7 @@ Setting = Literal[
     "romance",
     "nightlife",
     "performance",
+    "urban",
     "abstract",
 ]
 
@@ -133,7 +134,8 @@ _SCENE_SYSTEM_PROMPT = (
     "- A dragon flies over an army on a snowy battlefield -> combat\n"
     "- Soldiers crawl through mud under gunfire -> combat\n"
     "- A masked figure stalks someone in a dark corridor -> horror\n"
-    "- People dancing under colored lights in a club -> nightlife\n\n"
+    "- People dancing under colored lights in a club -> nightlife\n"
+    "- Daytime traffic and pedestrians crossing a city street -> urban\n\n"
     "mood: 1-3 moods justified by what's visible (expressions, action, "
     "lighting, color). Avoid a generic default (e.g. dreamy) if a more "
     "specific one fits. Examples:\n"
@@ -171,6 +173,8 @@ _MUSIC_SYSTEM_PROMPT = (
     "Query: aggressive industrial electronic with distorted bass and a pounding beat, instrumental\n\n"
     "Setting: nightlife, mood romantic/melancholic, motion moderate\n"
     "Query: slow moody electronic with warm synth pads and a soft beat, instrumental\n\n"
+    "Setting: urban, mood tense/nostalgic, motion moderate\n"
+    "Query: mid-tempo hip-hop with a gritty boom-bap beat and low bass, instrumental\n\n"
     "No artist names or track titles. English only, 5 to 20 words."
 )
 _MUSIC_PROMPT = ChatPromptTemplate.from_messages(
