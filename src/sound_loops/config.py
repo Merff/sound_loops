@@ -29,6 +29,11 @@ class Settings(BaseSettings):
     clap_checkpoint: str = "laion/larger_clap_general"
     clap_device: str = "mps"
     embedding_batch_size: int = 8
+    # ClapFeatureExtractor по умолчанию берёт случайные max_length_s секунд
+    # из файла длиннее (truncation="rand_trunc") — эмбеддинг одного и того
+    # же трека меняется от запуска к запуску. Чтобы этого не происходило,
+    # сами не декодируем дальше этой границы, всегда с начала файла.
+    clap_max_audio_seconds: float = 10.0
 
     vlm_model: str = "qwen3-vl:4b-instruct"
     vlm_base_url: str = "http://localhost:11434"

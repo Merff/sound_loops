@@ -119,3 +119,12 @@ def test_decode_audio_mono_returns_expected_sample_count(tone_track: Path):
     expected_samples = track_duration * sample_rate
     assert abs(len(waveform) - expected_samples) < sample_rate * DURATION_TOLERANCE
     assert waveform.dtype.name == "float32"
+
+
+def test_decode_audio_mono_respects_max_seconds(tone_track: Path):
+    """tone_track — 12с (conftest.py). С max_seconds=5 должно вернуться ~5с, не 12."""
+    sample_rate = 16000
+    waveform = decode_audio_mono(tone_track, sample_rate, max_seconds=5.0)
+
+    expected_samples = 5.0 * sample_rate
+    assert abs(len(waveform) - expected_samples) < sample_rate * DURATION_TOLERANCE

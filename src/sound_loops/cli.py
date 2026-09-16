@@ -73,7 +73,9 @@ def index_cmd(batch_size: int | None, limit: int | None) -> None:
 
     embedder = ClapEmbedder(settings.clap_checkpoint, settings.clap_device)
     with connect(settings.database_url) as conn:
-        report = index_tracks(conn, embedder, batch_size or settings.embedding_batch_size, limit)
+        report = index_tracks(
+            conn, embedder, batch_size or settings.embedding_batch_size, limit, settings.clap_max_audio_seconds
+        )
     report.print_summary()
 
 

@@ -58,6 +58,7 @@ def index_tracks(
     embedder: Embedder,
     batch_size: int,
     limit: int | None = None,
+    max_audio_seconds: float | None = None,
 ) -> IndexReport:
     register_vector(conn)
     report = IndexReport()
@@ -70,7 +71,7 @@ def index_tracks(
         ok_ids = []
         for track_id, path in batch:
             try:
-                waveforms.append(decode_audio_mono(Path(path), embedder.sample_rate))
+                waveforms.append(decode_audio_mono(Path(path), embedder.sample_rate, max_audio_seconds))
                 ok_ids.append(track_id)
             except FfmpegError as exc:
                 report.skipped.append((path, f"ffmpeg не смог декодировать: {exc}"))

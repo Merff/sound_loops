@@ -113,10 +113,16 @@ def extract_audio_segment(
     run(cmd)
 
 
-def decode_audio_mono(path: Path, sample_rate: int) -> np.ndarray:
-    """Декодировать аудиодорожку в моно float32 PCM заданной частоты дискретизации."""
-    cmd = [
-        "ffmpeg", "-v", "error",
+def decode_audio_mono(path: Path, sample_rate: int, max_seconds: float | None = None) -> np.ndarray:
+    """Декодировать аудиодорожку в моно float32 PCM заданной частоты дискретизации.
+
+    max_seconds (если задан) обрезает с начала файла — ffmpeg читает только
+    нужный кусок, до полной длины не декодирует.
+    """
+    cmd = ["ffmpeg", "-v", "error"]
+    if max_seconds is not None:
+        cmd += ["-t", f"{max_seconds:.3f}"]
+    cmd += [
         "-i", str(path),
         "-ac", "1",
         "-ar", str(sample_rate),
