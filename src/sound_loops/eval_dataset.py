@@ -26,9 +26,10 @@ class LoopAnnotation(BaseModel):
     mood: list[Mood] = Field(min_length=1, max_length=3)
     vocals: Vocals
     good_tracks: list[str] = Field(
-        min_length=2,
+        min_length=1,
         max_length=3,
-        description="Пути к трекам (как в tracks.path), найденные вручную через `search`.",
+        description="Пути к трекам (как в tracks.path), найденные вручную через `search`. "
+        "2-3 предпочтительнее одного — меньше шума в hit@k.",
     )
 
 

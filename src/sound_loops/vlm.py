@@ -26,7 +26,7 @@ from pydantic import BaseModel, Field, field_validator
 # Часть ключа кеша в video_analyses (см. analysis.py) — менять при любой
 # правке текста промптов/схемы ниже, иначе в базе смешаются результаты
 # старой и новой формулировки без возможности их различить.
-PROMPT_VERSION = "v8"
+PROMPT_VERSION = "v7"
 
 Motion = Literal["static", "slow", "moderate", "fast", "chaotic"]
 Mood = Literal[
@@ -58,9 +58,6 @@ Setting = Literal[
     "urban",  # город
     "abstract",  # абстрактное/небытовое
 ]
-
-# vocals = ["instrumental", "vocals_ok", "any"]
-# tempo = ["slow", "mid", "fast"]
 
 
 class SceneObservation(BaseModel):

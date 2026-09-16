@@ -1,0 +1,187 @@
+{
+  "timestamp": "2026-09-16T09:10:57.138330+00:00",
+  "commit": "7ac817d",
+  "answers": [
+    {
+      "loop": "data/loops/loop-1.mp4",
+      "label_a": "baseline",
+      "choice": "A",
+      "winner": "baseline"
+    },
+    {
+      "loop": "data/loops/loop-2.mp4",
+      "label_a": "baseline",
+      "choice": "A",
+      "winner": "baseline"
+    },
+    {
+      "loop": "data/loops/loop-3.mp4",
+      "label_a": "baseline",
+      "choice": "tie",
+      "winner": "tie"
+    },
+    {
+      "loop": "data/loops/loop-4.mp4",
+      "label_a": "pipeline",
+      "choice": "A",
+      "winner": "pipeline"
+    },
+    {
+      "loop": "data/loops/loop-5.mp4",
+      "label_a": "baseline",
+      "choice": "A",
+      "winner": "baseline"
+    },
+    {
+      "loop": "data/loops/loop-6.mp4",
+      "label_a": "baseline",
+      "choice": "B",
+      "winner": "pipeline"
+    },
+    {
+      "loop": "data/loops/loop-7.mp4",
+      "label_a": "baseline",
+      "choice": "A",
+      "winner": "baseline"
+    },
+    {
+      "loop": "data/loops/loop-8.mp4",
+      "label_a": "pipeline",
+      "choice": "B",
+      "winner": "baseline"
+    },
+    {
+      "loop": "data/loops/loop-9.mp4",
+      "label_a": "baseline",
+      "choice": "B",
+      "winner": "pipeline"
+    },
+    {
+      "loop": "data/loops/loop-10.mp4",
+      "label_a": "pipeline",
+      "choice": "B",
+      "winner": "baseline"
+    },
+    {
+      "loop": "data/loops/loop-11.mp4",
+      "label_a": "pipeline",
+      "choice": "A",
+      "winner": "pipeline"
+    },
+    {
+      "loop": "data/loops/loop-12.mp4",
+      "label_a": "baseline",
+      "choice": "B",
+      "winner": "pipeline"
+    },
+    {
+      "loop": "data/loops/loop-13.mp4",
+      "label_a": "pipeline",
+      "choice": "B",
+      "winner": "baseline"
+    },
+    {
+      "loop": "data/loops/loop-14.mp4",
+      "label_a": "baseline",
+      "choice": "A",
+      "winner": "baseline"
+    },
+    {
+      "loop": "data/loops/loop-15.mp4",
+      "label_a": "pipeline",
+      "choice": "B",
+      "winner": "baseline"
+    },
+    {
+      "loop": "data/loops/loop-16.mp4",
+      "label_a": "pipeline",
+      "choice": "tie",
+      "winner": "tie"
+    },
+    {
+      "loop": "data/loops/loop-17.mp4",
+      "label_a": "pipeline",
+      "choice": "A",
+      "winner": "pipeline"
+    },
+    {
+      "loop": "data/loops/loop-18.mp4",
+      "label_a": "pipeline",
+      "choice": "B",
+      "winner": "baseline"
+    },
+    {
+      "loop": "data/loops/loop-19.mp4",
+      "label_a": "baseline",
+      "choice": "B",
+      "winner": "pipeline"
+    },
+    {
+      "loop": "data/loops/loop-20.mp4",
+      "label_a": "baseline",
+      "choice": "A",
+      "winner": "baseline"
+    },
+    {
+      "loop": "data/loops/loop-21.mp4",
+      "label_a": "pipeline",
+      "choice": "tie",
+      "winner": "tie"
+    },
+    {
+      "loop": "data/loops/loop-22.mp4",
+      "label_a": "pipeline",
+      "choice": "A",
+      "winner": "pipeline"
+    },
+    {
+      "loop": "data/loops/loop-23.mp4",
+      "label_a": "baseline",
+      "choice": "tie",
+      "winner": "tie"
+    },
+    {
+      "loop": "data/loops/loop-24.mp4",
+      "label_a": "pipeline",
+      "choice": "tie",
+      "winner": "tie"
+    },
+    {
+      "loop": "data/loops/loop-25.mp4",
+      "label_a": "baseline",
+      "choice": "B",
+      "winner": "pipeline"
+    },
+    {
+      "loop": "data/loops/loop-26.mp4",
+      "label_a": "pipeline",
+      "choice": "tie",
+      "winner": "tie"
+    },
+    {
+      "loop": "data/loops/loop-27.mp4",
+      "label_a": "pipeline",
+      "choice": "tie",
+      "winner": "tie"
+    },
+    {
+      "loop": "data/loops/loop-28.mp4",
+      "label_a": "pipeline",
+      "choice": "B",
+      "winner": "baseline"
+    },
+    {
+      "loop": "data/loops/loop-29.mp4",
+      "label_a": "baseline",
+      "choice": "tie",
+      "winner": "tie"
+    },
+    {
+      "loop": "data/loops/loop-30.mp4",
+      "label_a": "pipeline",
+      "choice": "B",
+      "winner": "baseline"
+    }
+  ],
+  "pipeline_win_rate": 0.4090909090909091
+}

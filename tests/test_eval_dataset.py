@@ -26,10 +26,15 @@ def test_invalid_mood_label_raises_clear_error():
         LoopAnnotation.model_validate(bad)
 
 
-def test_too_few_good_tracks_raises():
-    bad = {**_VALID, "good_tracks": ["only_one.mp3"]}
+def test_empty_good_tracks_raises():
+    bad = {**_VALID, "good_tracks": []}
     with pytest.raises(ValidationError):
         LoopAnnotation.model_validate(bad)
+
+
+def test_single_good_track_is_accepted():
+    entry = LoopAnnotation.model_validate({**_VALID, "good_tracks": ["only_one.mp3"]})
+    assert entry.good_tracks == ["only_one.mp3"]
 
 
 def test_load_dataset_missing_file_raises(tmp_path):

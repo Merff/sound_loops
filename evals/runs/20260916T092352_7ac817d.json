@@ -1,0 +1,586 @@
+{
+  "timestamp": "2026-09-16T09:23:52.147518+00:00",
+  "commit": "7ac817d",
+  "model": "qwen3-vl:4b-instruct",
+  "prompt_version": "v7",
+  "temperature": 0.0,
+  "search_depth": 500,
+  "loops": [
+    {
+      "loop": "data/loops/loop-1.mp4",
+      "setting_correct": true,
+      "predicted_setting": "urban",
+      "true_setting": "urban",
+      "mood_overlap": 0.0,
+      "predicted_mood": [
+        "joyful",
+        "triumphant"
+      ],
+      "true_mood": [
+        "epic"
+      ],
+      "music_query": "fast upbeat pop with driving beat and bright synth leads, instrumental",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": 138
+    },
+    {
+      "loop": "data/loops/loop-2.mp4",
+      "setting_correct": false,
+      "predicted_setting": "combat",
+      "true_setting": "domestic",
+      "mood_overlap": 0.5,
+      "predicted_mood": [
+        "tense",
+        "aggressive"
+      ],
+      "true_mood": [
+        "tense"
+      ],
+      "music_query": "aggressive industrial electronic with distorted bass and a pounding beat, instrumental",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": null
+    },
+    {
+      "loop": "data/loops/loop-3.mp4",
+      "setting_correct": true,
+      "predicted_setting": "nature",
+      "true_setting": "nature",
+      "mood_overlap": 0.3333333333333333,
+      "predicted_mood": [
+        "calm",
+        "dreamy"
+      ],
+      "true_mood": [
+        "melancholic",
+        "dreamy"
+      ],
+      "music_query": "fast dreamy electronic with flowing synth pads and gentle percussion, instrumental",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": 42
+    },
+    {
+      "loop": "data/loops/loop-4.mp4",
+      "setting_correct": false,
+      "predicted_setting": "domestic",
+      "true_setting": "scifi_fantasy",
+      "mood_overlap": 0.3333333333333333,
+      "predicted_mood": [
+        "melancholic",
+        "nostalgic"
+      ],
+      "true_mood": [
+        "nostalgic",
+        "tragic"
+      ],
+      "music_query": "chaotic nostalgic instrumental with lo-fi vinyl crackle and echoing bass, electronic",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": 102
+    },
+    {
+      "loop": "data/loops/loop-5.mp4",
+      "setting_correct": false,
+      "predicted_setting": "domestic",
+      "true_setting": "performance",
+      "mood_overlap": 0.0,
+      "predicted_mood": [
+        "eerie",
+        "melancholic"
+      ],
+      "true_mood": [
+        "comic"
+      ],
+      "music_query": "slow eerie instrumental with haunting synth and sparse percussion, ambient electronic",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": null
+    },
+    {
+      "loop": "data/loops/loop-6.mp4",
+      "setting_correct": true,
+      "predicted_setting": "nature",
+      "true_setting": "nature",
+      "mood_overlap": 0.25,
+      "predicted_mood": [
+        "joyful",
+        "calm"
+      ],
+      "true_mood": [
+        "joyful",
+        "nostalgic",
+        "dreamy"
+      ],
+      "music_query": "upbeat joyful folk instrumental with bright acoustic guitar and rhythmic percussion, chaotic motion",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": 269
+    },
+    {
+      "loop": "data/loops/loop-7.mp4",
+      "setting_correct": true,
+      "predicted_setting": "domestic",
+      "true_setting": "domestic",
+      "mood_overlap": 0.25,
+      "predicted_mood": [
+        "melancholic",
+        "nostalgic"
+      ],
+      "true_mood": [
+        "nostalgic",
+        "comic",
+        "dreamy"
+      ],
+      "music_query": "slow nostalgic instrumental with warm piano and soft strings, ambient and reflective",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": 32
+    },
+    {
+      "loop": "data/loops/loop-8.mp4",
+      "setting_correct": false,
+      "predicted_setting": "scifi_fantasy",
+      "true_setting": "combat",
+      "mood_overlap": 0.3333333333333333,
+      "predicted_mood": [
+        "tense",
+        "aggressive"
+      ],
+      "true_mood": [
+        "epic",
+        "tense"
+      ],
+      "music_query": "aggressive industrial electronic with heavy bass and sharp synth hits, instrumental",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": 490
+    },
+    {
+      "loop": "data/loops/loop-9.mp4",
+      "setting_correct": false,
+      "predicted_setting": "combat",
+      "true_setting": "abstract",
+      "mood_overlap": 0.3333333333333333,
+      "predicted_mood": [
+        "tense",
+        "aggressive"
+      ],
+      "true_mood": [
+        "epic",
+        "aggressive"
+      ],
+      "music_query": "aggressive industrial electronic with heavy bass and slow, pounding beat, instrumental",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": 174
+    },
+    {
+      "loop": "data/loops/loop-10.mp4",
+      "setting_correct": true,
+      "predicted_setting": "urban",
+      "true_setting": "urban",
+      "mood_overlap": 0.5,
+      "predicted_mood": [
+        "tense",
+        "aggressive"
+      ],
+      "true_mood": [
+        "tense"
+      ],
+      "music_query": "aggressive hip-hop with heavy bass and sharp percussion, instrumental",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": null
+    },
+    {
+      "loop": "data/loops/loop-11.mp4",
+      "setting_correct": true,
+      "predicted_setting": "urban",
+      "true_setting": "urban",
+      "mood_overlap": 0.5,
+      "predicted_mood": [
+        "comic",
+        "joyful"
+      ],
+      "true_mood": [
+        "comic"
+      ],
+      "music_query": "upbeat comic pop instrumental with playful synth and light percussion",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": null
+    },
+    {
+      "loop": "data/loops/loop-12.mp4",
+      "setting_correct": false,
+      "predicted_setting": "combat",
+      "true_setting": "nature",
+      "mood_overlap": 0.3333333333333333,
+      "predicted_mood": [
+        "calm",
+        "melancholic"
+      ],
+      "true_mood": [
+        "melancholic",
+        "dreamy"
+      ],
+      "music_query": "slow melancholic instrumental with ambient pads and sparse percussion",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": 56
+    },
+    {
+      "loop": "data/loops/loop-13.mp4",
+      "setting_correct": true,
+      "predicted_setting": "urban",
+      "true_setting": "urban",
+      "mood_overlap": 0.25,
+      "predicted_mood": [
+        "joyful",
+        "calm"
+      ],
+      "true_mood": [
+        "joyful",
+        "nostalgic",
+        "dreamy"
+      ],
+      "music_query": "upbeat joyful electronic with bright synths and steady driving beat, instrumental",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": 140
+    },
+    {
+      "loop": "data/loops/loop-14.mp4",
+      "setting_correct": false,
+      "predicted_setting": "nightlife",
+      "true_setting": "abstract",
+      "mood_overlap": 0.0,
+      "predicted_mood": [
+        "joyful",
+        "triumphant"
+      ],
+      "true_mood": [
+        "comic"
+      ],
+      "music_query": "upbeat triumphant electronic with driving synth and energetic percussion, instrumental",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": null
+    },
+    {
+      "loop": "data/loops/loop-15.mp4",
+      "setting_correct": true,
+      "predicted_setting": "urban",
+      "true_setting": "urban",
+      "mood_overlap": 0.3333333333333333,
+      "predicted_mood": [
+        "tense",
+        "aggressive"
+      ],
+      "true_mood": [
+        "comic",
+        "tense"
+      ],
+      "music_query": "aggressive industrial electronic with heavy bass and sharp percussion, instrumental",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": null
+    },
+    {
+      "loop": "data/loops/loop-16.mp4",
+      "setting_correct": true,
+      "predicted_setting": "nightlife",
+      "true_setting": "nightlife",
+      "mood_overlap": 0.25,
+      "predicted_mood": [
+        "joyful",
+        "triumphant"
+      ],
+      "true_mood": [
+        "tense",
+        "joyful",
+        "festive"
+      ],
+      "music_query": "upbeat triumphant pop with driving beat and bright synth leads, instrumental",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": 500
+    },
+    {
+      "loop": "data/loops/loop-17.mp4",
+      "setting_correct": true,
+      "predicted_setting": "nightlife",
+      "true_setting": "nightlife",
+      "mood_overlap": 0.5,
+      "predicted_mood": [
+        "joyful",
+        "triumphant"
+      ],
+      "true_mood": [
+        "joyful"
+      ],
+      "music_query": "upbeat triumphant electronic with driving synth and punchy percussion, instrumental",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": 252
+    },
+    {
+      "loop": "data/loops/loop-18.mp4",
+      "setting_correct": true,
+      "predicted_setting": "urban",
+      "true_setting": "urban",
+      "mood_overlap": 0.25,
+      "predicted_mood": [
+        "comic",
+        "triumphant"
+      ],
+      "true_mood": [
+        "melancholic",
+        "comic",
+        "dreamy"
+      ],
+      "music_query": "upbeat triumphant pop with punchy drums and bright synth leads, instrumental",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": 156
+    },
+    {
+      "loop": "data/loops/loop-19.mp4",
+      "setting_correct": true,
+      "predicted_setting": "urban",
+      "true_setting": "urban",
+      "mood_overlap": 0.3333333333333333,
+      "predicted_mood": [
+        "tense",
+        "aggressive"
+      ],
+      "true_mood": [
+        "tense",
+        "epic"
+      ],
+      "music_query": "aggressive hip-hop with heavy bass and sharp percussion, instrumental",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": 294
+    },
+    {
+      "loop": "data/loops/loop-20.mp4",
+      "setting_correct": false,
+      "predicted_setting": "domestic",
+      "true_setting": "sports",
+      "mood_overlap": 0.5,
+      "predicted_mood": [
+        "joyful",
+        "triumphant"
+      ],
+      "true_mood": [
+        "joyful"
+      ],
+      "music_query": "upbeat triumphant pop instrumental with bright synths and driving beat",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": 104
+    },
+    {
+      "loop": "data/loops/loop-21.mp4",
+      "setting_correct": false,
+      "predicted_setting": "combat",
+      "true_setting": "domestic",
+      "mood_overlap": 0.0,
+      "predicted_mood": [
+        "tense",
+        "aggressive"
+      ],
+      "true_mood": [
+        "comic"
+      ],
+      "music_query": "aggressive industrial electronic with distorted bass and pounding beat, instrumental",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": 27
+    },
+    {
+      "loop": "data/loops/loop-22.mp4",
+      "setting_correct": false,
+      "predicted_setting": "urban",
+      "true_setting": "scifi_fantasy",
+      "mood_overlap": 0.3333333333333333,
+      "predicted_mood": [
+        "melancholic",
+        "nostalgic"
+      ],
+      "true_mood": [
+        "melancholic",
+        "epic"
+      ],
+      "music_query": "slow nostalgic instrumental with warm piano and ambient textures, urban vibe",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": 317
+    },
+    {
+      "loop": "data/loops/loop-23.mp4",
+      "setting_correct": true,
+      "predicted_setting": "sports",
+      "true_setting": "sports",
+      "mood_overlap": 0.0,
+      "predicted_mood": [
+        "joyful",
+        "eerie"
+      ],
+      "true_mood": [
+        "epic",
+        "triumphant",
+        "tense"
+      ],
+      "music_query": "moderate joyful eerie electronic with glitchy synths and upbeat percussion, instrumental",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": null
+    },
+    {
+      "loop": "data/loops/loop-24.mp4",
+      "setting_correct": false,
+      "predicted_setting": "urban",
+      "true_setting": "domestic",
+      "mood_overlap": 1.0,
+      "predicted_mood": [
+        "joyful",
+        "triumphant"
+      ],
+      "true_mood": [
+        "joyful",
+        "triumphant"
+      ],
+      "music_query": "upbeat triumphant pop with driving beat and bright synth leads, instrumental",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": 334
+    },
+    {
+      "loop": "data/loops/loop-25.mp4",
+      "setting_correct": true,
+      "predicted_setting": "sports",
+      "true_setting": "sports",
+      "mood_overlap": 0.0,
+      "predicted_mood": [
+        "aggressive",
+        "eerie"
+      ],
+      "true_mood": [
+        "tense",
+        "epic",
+        "comic"
+      ],
+      "music_query": "aggressive eerie electronic with distorted synths and rapid percussion, instrumental",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": null
+    },
+    {
+      "loop": "data/loops/loop-26.mp4",
+      "setting_correct": true,
+      "predicted_setting": "scifi_fantasy",
+      "true_setting": "scifi_fantasy",
+      "mood_overlap": 0.0,
+      "predicted_mood": [
+        "melancholic"
+      ],
+      "true_mood": [
+        "tense"
+      ],
+      "music_query": "slow melancholic instrumental with ambient synth pads and echoing percussion, electronic",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": 329
+    },
+    {
+      "loop": "data/loops/loop-27.mp4",
+      "setting_correct": false,
+      "predicted_setting": "domestic",
+      "true_setting": "urban",
+      "mood_overlap": 0.0,
+      "predicted_mood": [
+        "melancholic",
+        "nostalgic"
+      ],
+      "true_mood": [
+        "epic"
+      ],
+      "music_query": "fast nostalgic instrumental with lo-fi piano and warm analog synth, electronic",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": 58
+    },
+    {
+      "loop": "data/loops/loop-28.mp4",
+      "setting_correct": false,
+      "predicted_setting": "combat",
+      "true_setting": "abstract",
+      "mood_overlap": 0.2,
+      "predicted_mood": [
+        "aggressive",
+        "tense",
+        "dreamy"
+      ],
+      "true_mood": [
+        "nostalgic",
+        "epic",
+        "dreamy"
+      ],
+      "music_query": "aggressive dreamy electronic with heavy bass and glitchy synths, instrumental",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": 437
+    },
+    {
+      "loop": "data/loops/loop-29.mp4",
+      "setting_correct": false,
+      "predicted_setting": "nightlife",
+      "true_setting": "performance",
+      "mood_overlap": 0.25,
+      "predicted_mood": [
+        "joyful",
+        "triumphant"
+      ],
+      "true_mood": [
+        "joyful",
+        "comic",
+        "festive"
+      ],
+      "music_query": "upbeat triumphant pop with driving beat and bright synth leads, instrumental",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": 113
+    },
+    {
+      "loop": "data/loops/loop-30.mp4",
+      "setting_correct": false,
+      "predicted_setting": "horror",
+      "true_setting": "urban",
+      "mood_overlap": 0.0,
+      "predicted_mood": [
+        "melancholic",
+        "triumphant"
+      ],
+      "true_mood": [
+        "joyful",
+        "festive"
+      ],
+      "music_query": "slow melancholic triumphant instrumental with haunting synth and echoing percussion",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": null
+    }
+  ],
+  "aggregates": {
+    "setting_accuracy": 0.5,
+    "mean_mood_overlap": 0.2622222222222222,
+    "hit_at_1_rate": 0.0,
+    "hit_at_5_rate": 0.0,
+    "mean_best_rank": 207.8095238095238,
+    "not_found_count": 9
+  }
+}
