@@ -1,4 +1,4 @@
-from sound_loops.eval_metrics import best_rank, hit_at_k, mood_overlap
+from sound_loops.eval_metrics import best_rank, hit_at_k, mood_overlap, penalized_rank
 
 
 def test_mood_overlap_full_match():
@@ -40,3 +40,11 @@ def test_hit_at_k_false_beyond_k():
 def test_hit_at_1_only_checks_top_result():
     assert hit_at_k(["a", "b"], ["a"], k=1) is True
     assert hit_at_k(["a", "b"], ["b"], k=1) is False
+
+
+def test_penalized_rank_passes_through_found_rank():
+    assert penalized_rank(3, search_depth=500) == 3
+
+
+def test_penalized_rank_uses_search_depth_when_not_found():
+    assert penalized_rank(None, search_depth=500) == 500

@@ -36,7 +36,7 @@ MOOD_PHRASES = {
     "festive": "festive, celebratory music",
 }
 
-# Инструменты + реально проиндексированные жанры FMA_small (см. vlm.py::_LIBRARY_GENRES).
+# Инструменты + реально проиндексированные жанры FMA_small (см. vlm.py::_LIBRARY_GENRES_WITH_CHARACTER).
 GENRE_PHRASES = {
     "electronic": "electronic music with synthesizers",
     "rock": "rock music with electric guitars",

@@ -1,4 +1,5 @@
 from sound_loops.eval_compare import compare_runs
+from sound_loops.eval_metrics import penalized_rank
 from sound_loops.eval_run import EvalAggregates, EvalRun, LoopEvalResult
 
 
@@ -28,6 +29,7 @@ def _run(loops: list[LoopEvalResult], search_depth: int = 100) -> EvalRun:
         hit_at_5_rate=sum(r.hit_at_5 for r in loops) / n if n else 0.0,
         mean_best_rank=(sum(ranks) / len(ranks)) if ranks else None,
         not_found_count=n - len(ranks),
+        mean_penalized_rank=sum(penalized_rank(r.best_rank, search_depth) for r in loops) / n if n else 0.0,
     )
     return EvalRun(
         timestamp="2026-01-01T00:00:00+00:00",
@@ -81,3 +83,5 @@ def test_aggregate_delta_is_b_minus_a():
 
     assert result.aggregate_delta["hit_at_1_rate"] == 1.0
     assert result.aggregate_delta["mean_mood_overlap"] == 0.5
+    # a: не найдено -> penalized_rank=search_depth (100); b: rank=1. delta = 1 - 100.
+    assert result.aggregate_delta["mean_penalized_rank"] == -99.0

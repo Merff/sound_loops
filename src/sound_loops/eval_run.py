@@ -18,6 +18,7 @@ hit@1 после этого отражает реальный выбор мод�
 
 from __future__ import annotations
 
+import json
 import subprocess
 from datetime import UTC, datetime
 from pathlib import Path
@@ -29,7 +30,7 @@ from sound_loops.analysis import analyze_loop
 from sound_loops.config import Settings
 from sound_loops.embeddings import Embedder
 from sound_loops.eval_dataset import LoopAnnotation
-from sound_loops.eval_metrics import best_rank, hit_at_k, mood_overlap
+from sound_loops.eval_metrics import best_rank, hit_at_k, mood_overlap, penalized_rank
 from sound_loops.ffmpeg_utils import extract_frames
 from sound_loops.filters import tempo_range_for_motion
 from sound_loops.motion import estimate_motion
@@ -62,6 +63,13 @@ class EvalAggregates(BaseModel):
     hit_at_5_rate: float
     mean_best_rank: float | None
     not_found_count: int
+    # best_rank усреднённый только по найденным лупам — конфигурации с
+    # разным числом "не найдено" через mean_best_rank сравнивать нечестно
+    # (выживаемость смещает среднее в пользу той, что больше отбросила,
+    # см. docs/sound_loops-iteration-4.md). mean_penalized_rank считает
+    # не найденное как search_depth и годится для сравнения конфигураций
+    # между собой — mean_best_rank оставлен для того, что реально нашлось.
+    mean_penalized_rank: float
     # Сколько лупов потребовали хотя бы одного послабления фильтров (только
     # при use_filters=True) — частые послабления значат, что диапазоны
     # заданы неверно или библиотека слишком мала, а не что код не работает.
@@ -100,6 +108,10 @@ class EvalRun(BaseModel):
             )
         else:
             print(f"mean best rank:      n/a (не найдено ни разу в топ-{self.search_depth})")
+        print(
+            f"mean penalized rank: {a.mean_penalized_rank:.1f}  "
+            "(не найдено считается как search_depth — для сравнения конфигураций между собой)"
+        )
         if self.use_filters:
             print(f"лупов с послаблением фильтров: {a.loops_needing_relaxation}/{len(self.loops)}")
 
@@ -181,7 +193,7 @@ def _evaluate_loop(
     )
 
 
-def _aggregate(loops: list[LoopEvalResult]) -> EvalAggregates:
+def _aggregate(loops: list[LoopEvalResult], search_depth: int) -> EvalAggregates:
     n = len(loops)
     ranks = [r.best_rank for r in loops if r.best_rank is not None]
     return EvalAggregates(
@@ -191,6 +203,7 @@ def _aggregate(loops: list[LoopEvalResult]) -> EvalAggregates:
         hit_at_5_rate=sum(r.hit_at_5 for r in loops) / n,
         mean_best_rank=(sum(ranks) / len(ranks)) if ranks else None,
         not_found_count=n - len(ranks),
+        mean_penalized_rank=sum(penalized_rank(r.best_rank, search_depth) for r in loops) / n,
         loops_needing_relaxation=sum(1 for r in loops if r.relaxed_filters) if n else 0,
     )
 
@@ -221,7 +234,7 @@ def run_eval(
         temperature=temperature,
         search_depth=settings.eval_search_depth,
         loops=loops,
-        aggregates=_aggregate(loops),
+        aggregates=_aggregate(loops, settings.eval_search_depth),
     )
 
 
@@ -234,4 +247,16 @@ def save_run(run: EvalRun, runs_dir: Path) -> Path:
 
 
 def load_run(path: Path) -> EvalRun:
-    return EvalRun.model_validate_json(path.read_text())
+    """Прогоны, сохранённые до появления mean_penalized_rank (итерация 4),
+    не переписываем задним числом — досчитываем поле при загрузке, чтобы
+    старые файлы (и baseline в README) не стали нечитаемыми."""
+    raw = json.loads(path.read_text())
+    aggregates = raw.get("aggregates", {})
+    if "mean_penalized_rank" not in aggregates:
+        loops = raw["loops"]
+        search_depth = raw["search_depth"]
+        n = len(loops)
+        aggregates["mean_penalized_rank"] = (
+            sum(penalized_rank(loop.get("best_rank"), search_depth) for loop in loops) / n if n else 0.0
+        )
+    return EvalRun.model_validate(raw)

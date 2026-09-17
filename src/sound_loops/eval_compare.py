@@ -73,6 +73,10 @@ def compare_runs(a: EvalRun, b: EvalRun) -> CompareResult:
         "mean_mood_overlap": b.aggregates.mean_mood_overlap - a.aggregates.mean_mood_overlap,
         "hit_at_1_rate": b.aggregates.hit_at_1_rate - a.aggregates.hit_at_1_rate,
         "hit_at_5_rate": b.aggregates.hit_at_5_rate - a.aggregates.hit_at_5_rate,
+        # Честная (штрафующая "не найдено") версия — mean_best_rank сам по
+        # себе конфигурации с разным числом "не найдено" сравнивать не
+        # годится, см. EvalAggregates.mean_penalized_rank.
+        "mean_penalized_rank": b.aggregates.mean_penalized_rank - a.aggregates.mean_penalized_rank,
     }
 
     return CompareResult(only_in_a=only_in_a, only_in_b=only_in_b, diffs=diffs, aggregate_delta=aggregate_delta)

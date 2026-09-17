@@ -1,3 +1,5 @@
+import json
+
 import numpy as np
 import pytest
 from pgvector.psycopg import register_vector
@@ -53,8 +55,28 @@ def test_run_eval_computes_metrics(
     assert result.hit_at_5 is True
     assert result.best_rank == 1
     assert run.aggregates.setting_accuracy == 1.0
+    assert run.aggregates.mean_penalized_rank == 1.0  # найден -> penalized_rank == best_rank
     assert run.temperature == 0.0
     assert run.search_depth == db_settings.eval_search_depth
+
+
+def test_run_eval_mean_penalized_rank_uses_search_depth_for_not_found(
+    db_conn, db_settings, get_silent_loop, get_tone_track, tmp_path, fake_embedder, fake_scene_analyzer
+):
+    loop_path, _track_paths = _setup(db_conn, db_settings, get_silent_loop, get_tone_track, tmp_path, fake_embedder)
+
+    run = run_eval(
+        db_conn,
+        fake_scene_analyzer,
+        fake_embedder,
+        db_settings,
+        _dataset(loop_path, ["nonexistent_track.mp3"]),
+        temperature=0.0,
+    )
+
+    assert run.loops[0].best_rank is None
+    assert run.aggregates.mean_best_rank is None
+    assert run.aggregates.mean_penalized_rank == db_settings.eval_search_depth
 
 
 def test_run_eval_with_filters_relaxes_when_no_attrs(
@@ -175,3 +197,59 @@ def test_save_and_load_run_roundtrip(
     loaded = load_run(path)
 
     assert loaded == run
+
+
+def test_load_run_backfills_mean_penalized_rank_for_old_files(tmp_path):
+    """Прогоны, сохранённые до появления mean_penalized_rank (итерация 4),
+    не должны стать нечитаемыми — см. load_run."""
+    old_format = {
+        "timestamp": "2026-01-01T00:00:00+00:00",
+        "commit": "abc123",
+        "model": "m",
+        "prompt_version": "v1",
+        "temperature": 0.0,
+        "search_depth": 100,
+        "loops": [
+            {
+                "loop": "a.mp4",
+                "setting_correct": True,
+                "predicted_setting": "domestic",
+                "true_setting": "domestic",
+                "mood_overlap": 1.0,
+                "predicted_mood": ["calm"],
+                "true_mood": ["calm"],
+                "music_query": "q",
+                "hit_at_1": True,
+                "hit_at_5": True,
+                "best_rank": 3,
+            },
+            {
+                "loop": "b.mp4",
+                "setting_correct": False,
+                "predicted_setting": "urban",
+                "true_setting": "nature",
+                "mood_overlap": 0.0,
+                "predicted_mood": ["calm"],
+                "true_mood": ["tense"],
+                "music_query": "q2",
+                "hit_at_1": False,
+                "hit_at_5": False,
+                "best_rank": None,
+            },
+        ],
+        "aggregates": {
+            "setting_accuracy": 0.5,
+            "mean_mood_overlap": 0.5,
+            "hit_at_1_rate": 0.5,
+            "hit_at_5_rate": 0.5,
+            "mean_best_rank": 3.0,
+            "not_found_count": 1,
+        },
+    }
+    path = tmp_path / "old_run.json"
+    path.write_text(json.dumps(old_format))
+
+    loaded = load_run(path)
+
+    # (3 + 100) / 2 — второй луп не найден, штраф = search_depth.
+    assert loaded.aggregates.mean_penalized_rank == 51.5
