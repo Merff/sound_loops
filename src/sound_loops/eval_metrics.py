@@ -39,13 +39,10 @@ def hit_at_k(ranked_paths: Sequence[str], good_paths: Sequence[str], k: int) -> 
 def penalized_rank(rank: int | None, search_depth: int) -> int:
     """rank, или search_depth, если трек не найден.
 
-    Просто усреднять best_rank по найденным лупам (как делает
-    mean_best_rank) нельзя сравнивать между конфигурациями с разным
-    числом "не найдено" — выброс ненайденных из среднего искажает
-    сравнение в пользу той конфигурации, что больше отбросила (найдено
-    в итерации 4, docs/sound_loops-iteration-4.md, при сравнении фильтров
-    до/после калибровки промпта шага B). search_depth как штраф — то же
-    приближение, что eval_compare.py::_rank_component уже использует для
-    попарных дельт.
+    Усреднять best_rank только по найденным лупам (mean_best_rank)
+    нельзя использовать для сравнения конфигураций с разным числом "не
+    найдено" — выброс ненайденных смещает среднее в пользу той, что
+    больше отбросила. search_depth как штраф — то же приближение, что
+    eval_compare.py::_rank_component уже использует для попарных дельт.
     """
     return rank if rank is not None else search_depth

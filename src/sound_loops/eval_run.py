@@ -114,6 +114,10 @@ class EvalRun(BaseModel):
         )
         if self.use_filters:
             print(f"лупов с послаблением фильтров: {a.loops_needing_relaxation}/{len(self.loops)}")
+        if self.use_rerank:
+            print("\nОбъяснения переранжирования:")
+            for r in self.loops:
+                print(f"  {r.loop}: {r.rerank_reasoning}")
 
 
 def git_commit() -> str:

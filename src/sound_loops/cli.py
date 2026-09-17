@@ -303,7 +303,11 @@ def blind_eval_cmd(filters: bool, rerank: bool) -> None:
         click.echo(f"\nЛуп: {pair.loop}")
         click.echo(f"  A: {pair.path_a}")
         click.echo(f"  B: {pair.path_b}")
-        return click.prompt("Какой вариант лучше подходит?", type=click.Choice(["A", "B", "tie"]))
+        choice = click.prompt("Какой вариант лучше подходит?", type=click.Choice(["A", "B", "tie"]))
+        # Печатается после ответа, не до — до ответа это раскрыло бы, что есть что (baseline объяснения не даёт).
+        if pair.rerank_reasoning:
+            click.echo(f"  Выбор модели (переранжирование): {pair.rerank_reasoning}")
+        return choice
 
     run = score_pairs(pairs, ask)
     path = save_blind_run(run, settings.eval_blind_runs_dir)
