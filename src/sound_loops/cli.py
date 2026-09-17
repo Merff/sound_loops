@@ -1,5 +1,5 @@
-"""Точка входа: sound-loops init-db|ingest|render|index|search|analyze|match|
-eval-run|eval-compare|blind-eval|clear-renders|clear-analyses|clap-check."""
+"""Точка входа: sound-loops init-db|ingest|render|index|tag-tracks|search|
+analyze|match|eval-run|eval-compare|blind-eval|clear-renders|clear-analyses|clap-check."""
 
 from __future__ import annotations
 
@@ -79,6 +79,27 @@ def index_cmd(batch_size: int | None, limit: int | None) -> None:
     report.print_summary()
 
 
+@cli.command("tag-tracks")
+@click.option("--limit", type=int, default=None, help="Обработать не больше N треков за запуск.")
+def tag_tracks_cmd(limit: int | None) -> None:
+    """Темп + zero-shot теги (CLAP) для треков, у которых их ещё нет (нужен index)."""
+    settings = load_settings()
+
+    from sound_loops.hf_cache import ensure_offline_if_cached
+
+    ensure_offline_if_cached(settings.clap_checkpoint)
+
+    from sound_loops.attrs import compute_attrs
+    from sound_loops.clap import ClapEmbedder
+
+    embedder = ClapEmbedder(settings.clap_checkpoint, settings.clap_device)
+    with connect(settings.database_url) as conn:
+        report = compute_attrs(
+            conn, embedder, settings.tempo_sample_rate, settings.tempo_max_seconds, limit
+        )
+    report.print_summary()
+
+
 @cli.command("search")
 @click.argument("query")
 @click.option("--top", "top_n", type=int, default=5, help="Сколько треков вывести.")
@@ -150,7 +171,11 @@ def analyze_cmd(loop_path: Path | None) -> None:
     default=None,
     help="Путь к конкретному лупу. Без флага берётся случайный луп из базы.",
 )
-def match_cmd(loop_path: Path | None) -> None:
+@click.option(
+    "--filters/--no-filters", default=False, help="Гибридный поиск: фильтры по темпу/вокалу (нужен tag-tracks)."
+)
+@click.option("--rerank/--no-rerank", default=False, help="Переранжирование топ-кандидатов моделью.")
+def match_cmd(loop_path: Path | None, filters: bool, rerank: bool) -> None:
     """Подобрать музыку под уже проанализированный луп (см. analyze) -> CLAP-поиск -> mp4."""
     settings = load_settings()
 
@@ -168,16 +193,20 @@ def match_cmd(loop_path: Path | None) -> None:
     )
 
     with connect(settings.database_url) as conn:
-        result = match_once(conn, analyzer, embedder, settings, loop_path)
+        result = match_once(conn, analyzer, embedder, settings, loop_path, use_filters=filters, use_rerank=rerank)
 
     scene = result.analysis.scene
     click.echo(f"Луп: {result.loop.path}")
     click.echo(f"Обстановка: {scene.setting}; движение: {scene.motion}; настроение: {', '.join(scene.mood)}")
     click.echo(f"Музыкальный запрос: {result.music_query}")
-    click.echo("Топ-3 кандидата:")
+    if result.relaxed_filters:
+        click.echo(f"Послабления фильтров: {', '.join(result.relaxed_filters)}")
+    click.echo(f"Топ-{len(result.candidates)} кандидата:")
     for rank, r in enumerate(result.candidates, start=1):
         title = r.title or Path(r.path).name
         click.echo(f"  {rank}. {r.similarity:.3f}  {title} — {r.artist or '?'}  [{r.path}]")
+    if result.rerank_reasoning:
+        click.echo(f"Выбор модели (переранжирование): {result.rerank_reasoning}")
     click.echo(str(result.output_path))
 
 
@@ -185,7 +214,11 @@ def match_cmd(loop_path: Path | None) -> None:
 @click.option(
     "--loop", "loop_filter", type=str, default=None, help="Прогнать только один луп (путь как в разметке)."
 )
-def eval_run_cmd(loop_filter: str | None) -> None:
+@click.option(
+    "--filters/--no-filters", default=False, help="Гибридный поиск: фильтры по темпу/вокалу (нужен tag-tracks)."
+)
+@click.option("--rerank/--no-rerank", default=False, help="Переранжирование топ-кандидатов моделью.")
+def eval_run_cmd(loop_filter: str | None, filters: bool, rerank: bool) -> None:
     """Прогнать пайплайн по evals/dataset.json, посчитать метрики и сохранить прогон."""
     settings = load_settings()
 
@@ -213,7 +246,9 @@ def eval_run_cmd(loop_filter: str | None) -> None:
     )
 
     with connect(settings.database_url) as conn:
-        run = run_eval(conn, analyzer, embedder, settings, dataset, temperature=0.0)
+        run = run_eval(
+            conn, analyzer, embedder, settings, dataset, temperature=0.0, use_filters=filters, use_rerank=rerank
+        )
 
     run.print_summary()
     path = save_run(run, settings.eval_runs_dir)
@@ -232,7 +267,11 @@ def eval_compare_cmd(run_a: Path, run_b: Path) -> None:
 
 
 @cli.command("blind-eval")
-def blind_eval_cmd() -> None:
+@click.option(
+    "--filters/--no-filters", default=False, help="Гибридный поиск: фильтры по темпу/вокалу (нужен tag-tracks)."
+)
+@click.option("--rerank/--no-rerank", default=False, help="Переранжирование топ-кандидатов моделью.")
+def blind_eval_cmd(filters: bool, rerank: bool) -> None:
     """Слепое сравнение пайплайна со случайным baseline на всём наборе разметки."""
     settings = load_settings()
 
@@ -256,7 +295,9 @@ def blind_eval_cmd() -> None:
     )
 
     with connect(settings.database_url) as conn:
-        pairs = prepare_pairs(conn, analyzer, embedder, settings, dataset)
+        pairs = prepare_pairs(
+            conn, analyzer, embedder, settings, dataset, use_filters=filters, use_rerank=rerank
+        )
 
     def ask(pair) -> str:
         click.echo(f"\nЛуп: {pair.loop}")

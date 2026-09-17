@@ -55,6 +55,13 @@ class Settings(BaseSettings):
     motion_sample_fps: float = 8.0
     motion_frame_size: int = 64
 
+    # Атрибуты треков (итерация 4): темп через librosa. 22050 — стандартная
+    # частота для beat-tracking (librosa сама ресемплит при необходимости).
+    # max_seconds ограничивает decode/beat-tracking одного трека, а не
+    # точность темпа — глобальный BPM устойчиво виден на минуте записи.
+    tempo_sample_rate: int = 22050
+    tempo_max_seconds: float = 60.0
+
     @field_validator("fade_seconds")
     @classmethod
     def _must_be_positive(cls, v: float) -> float:

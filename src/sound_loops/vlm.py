@@ -89,6 +89,9 @@ class SceneDescription(BaseModel):
     mood: list[Mood]
 
 
+Vocals = Literal["instrumental", "with_vocals"]
+
+
 class MusicQuery(BaseModel):
     """Шаг B: короткое текстовое описание музыки для CLAP-поиска.
 
@@ -100,10 +103,13 @@ class MusicQuery(BaseModel):
     query: str = Field(
         description=(
             "5 to 20 word English description of MUSIC (not the video): "
-            "genre or instruments, tempo, mood, and whether it has vocals "
-            "('instrumental' or 'with vocals'). No mentions of the video's "
+            "genre or instruments, tempo, mood. No mentions of the video's "
             "subject, people, animals, artist names or track titles."
         )
+    )
+    vocals: Vocals = Field(
+        description="Whether the ideal track for this scene has vocals — separate from the query text "
+        "so it can be used as a search filter, not just a word inside it."
     )
 
     @field_validator("query")
@@ -115,6 +121,15 @@ class MusicQuery(BaseModel):
         return value
 
 
+class RerankChoice(BaseModel):
+    """Шаг переранжирования (итерация 4): модель получает пронумерованный
+    список кандидатов с их атрибутами и выбирает один, объясняя выбор —
+    RAG в чистом виде, контекст собран из базы, а не лежит в весах модели."""
+
+    candidate_index: int = Field(description="1-based number of the chosen candidate from the numbered list.")
+    reasoning: str = Field(description="One or two sentences on why this candidate fits the scene best.")
+
+
 class SceneAnalyzer(Protocol):
     model_id: str
     prompt_version: str
@@ -124,6 +139,9 @@ class SceneAnalyzer(Protocol):
 
     def compose_music_query(self, scene: SceneDescription) -> MusicQuery:
         """Полное описание сцены -> короткий текстовый запрос для CLAP-поиска музыки."""
+
+    def rerank(self, scene: SceneDescription, candidate_descriptions: Sequence[str]) -> RerankChoice:
+        """Описание сцены + пронумерованные читаемые описания кандидатов -> выбор + объяснение."""
 
 
 _SCENE_SYSTEM_PROMPT = (
@@ -165,7 +183,8 @@ _LIBRARY_GENRES = "Electronic, Rock, Hip-Hop, Pop, Folk, International, Experime
 _MUSIC_SYSTEM_PROMPT = (
     "Turn a video scene's setting and mood into a short search query for "
     "background music (CLAP text-to-audio). Describe only the music — "
-    "genre, instruments, tempo — never the video's content.\n\n"
+    "genre, instruments, tempo — never the video's content or vocals "
+    "(vocals go in a separate field).\n\n"
     f"The music library only has these genres: {_LIBRARY_GENRES}. Frame the "
     "genre/instruments part of the query using one of them (or close to "
     "it) — never say orchestral, cinematic, soundtrack, or symphonic, "
@@ -174,15 +193,20 @@ _MUSIC_SYSTEM_PROMPT = (
     "electronic or heavy rock, not orchestral).\n\n"
     "Examples:\n"
     "Setting: nature, mood calm/dreamy, motion slow\n"
-    "Query: slow dreamy folk instrumental with soft acoustic guitar and warm pads\n\n"
+    "Query: slow dreamy folk with soft acoustic guitar and warm pads\n"
+    "Vocals: instrumental\n\n"
     "Setting: sports, mood comic/joyful, motion fast\n"
-    "Query: upbeat quirky electronic track with playful synth and a bouncy beat, instrumental\n\n"
-    "Setting: combat, mood tense/aggressive, motion chaotic\n"
-    "Query: aggressive industrial electronic with distorted bass and a pounding beat, instrumental\n\n"
+    "Query: upbeat quirky electronic track with playful synth and a bouncy beat\n"
+    "Vocals: instrumental\n\n"
+    "Setting: performance, mood joyful/romantic, motion moderate\n"
+    "Query: warm mid-tempo pop with a catchy hook and soft drums\n"
+    "Vocals: with_vocals\n\n"
     "Setting: nightlife, mood romantic/melancholic, motion moderate\n"
-    "Query: slow moody electronic with warm synth pads and a soft beat, instrumental\n\n"
+    "Query: slow moody electronic with warm synth pads and a soft beat\n"
+    "Vocals: instrumental\n\n"
     "Setting: urban, mood tense/nostalgic, motion moderate\n"
-    "Query: mid-tempo hip-hop with a gritty boom-bap beat and low bass, instrumental\n\n"
+    "Query: mid-tempo hip-hop with a gritty boom-bap beat and low bass\n"
+    "Vocals: with_vocals\n\n"
     "No artist names or track titles. English only, 5 to 20 words."
 )
 _MUSIC_PROMPT = ChatPromptTemplate.from_messages(
@@ -191,6 +215,28 @@ _MUSIC_PROMPT = ChatPromptTemplate.from_messages(
         (
             "human",
             "Setting: {setting}, mood {mood}, motion {motion}\nQuery:",
+        ),
+    ]
+)
+
+_RERANK_SYSTEM_PROMPT = (
+    "You are picking the single best background music track for a silent "
+    "video scene from a short list of candidates already retrieved by a "
+    "search engine. Each candidate is described by its title, tempo, mood/"
+    "genre tags (from a separate zero-shot classifier — approximate, not "
+    "ground truth) and vocals, plus its similarity score to the scene's "
+    "music query.\n\n"
+    "Pick the candidate that best fits the scene's setting and mood — "
+    "tempo and vocals should roughly match what the scene calls for, but "
+    "similarity to the query matters too. Reply with the candidate's "
+    "number and a short reason (1-2 sentences)."
+)
+_RERANK_PROMPT = ChatPromptTemplate.from_messages(
+    [
+        ("system", _RERANK_SYSTEM_PROMPT),
+        (
+            "human",
+            "Scene: setting {setting}, mood {mood}, motion {motion}\n\nCandidates:\n{candidates}\n\nBest match:",
         ),
     ]
 )
@@ -232,6 +278,9 @@ class OllamaSceneAnalyzer:
         self._music_chain = (_MUSIC_PROMPT | chat.with_structured_output(MusicQuery)).with_retry(
             stop_after_attempt=2
         )
+        self._rerank_chain = (_RERANK_PROMPT | chat.with_structured_output(RerankChoice)).with_retry(
+            stop_after_attempt=2
+        )
 
     def describe_scene(self, frames: Sequence[bytes]) -> SceneObservation:
         return self._scene_chain.invoke(frames)
@@ -242,5 +291,15 @@ class OllamaSceneAnalyzer:
                 "setting": scene.setting,
                 "mood": ", ".join(scene.mood),
                 "motion": scene.motion,
+            }
+        )
+
+    def rerank(self, scene: SceneDescription, candidate_descriptions: Sequence[str]) -> RerankChoice:
+        return self._rerank_chain.invoke(
+            {
+                "setting": scene.setting,
+                "mood": ", ".join(scene.mood),
+                "motion": scene.motion,
+                "candidates": "\n".join(candidate_descriptions),
             }
         )

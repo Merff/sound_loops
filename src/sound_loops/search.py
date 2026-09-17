@@ -16,6 +16,8 @@ import psycopg
 from pgvector.psycopg import register_vector
 
 from sound_loops.embeddings import Embedder, normalize
+from sound_loops.filters import FilterLevel, TempoRange, relaxation_ladder, run_relaxation_ladder
+from sound_loops.vlm import Vocals
 
 
 class SearchError(RuntimeError):
@@ -30,6 +32,8 @@ class SearchResult:
     artist: str | None
     genre: str | None
     similarity: float
+    tempo_bpm: float | None = None
+    tags: dict | None = None
 
 
 def search_tracks(
@@ -67,6 +71,68 @@ def search_tracks(
         raise SearchError("в базе нет проиндексированных треков — сначала запустите index")
 
     return [SearchResult(*row) for row in rows]
+
+
+def _hybrid_where(
+    level: FilterLevel, min_duration_seconds: float | None
+) -> tuple[str, list]:
+    clauses = ["embedding IS NOT NULL"]
+    params: list = []
+    if min_duration_seconds is not None:
+        clauses.append("duration_seconds >= %s")
+        params.append(min_duration_seconds)
+    if level.tempo_range is not None:
+        clauses.append("tempo_bpm BETWEEN %s AND %s")
+        params += [level.tempo_range[0], level.tempo_range[1]]
+    if level.vocals is not None:
+        other = "with_vocals" if level.vocals == "instrumental" else "instrumental"
+        clauses.append("(tags -> 'vocals' ->> %s)::float >= (tags -> 'vocals' ->> %s)::float")
+        params += [level.vocals, other]
+    return " AND ".join(clauses), params
+
+
+def search_tracks_hybrid(
+    conn: psycopg.Connection,
+    embedder: Embedder,
+    query: str,
+    tempo_range: TempoRange,
+    vocals: Vocals,
+    top_n: int,
+    min_duration_seconds: float | None = None,
+) -> tuple[list[SearchResult], list[str]]:
+    """SQL-фильтр по темпу/вокалу -> векторное ранжирование остатка, с
+    лестницей послаблений (filters.py) — библиотека маленькая, жёсткие
+    условия регулярно дают пустую выдачу. На нескольких сотнях треков
+    точный перебор мгновенный, HNSW-индекс тут ничего не решает — он и не
+    используется целиком (WHERE-фильтр по атрибутам не покрыт им никак,
+    Postgres сам выбирает план).
+
+    Возвращает (результат, применённые послабления — для диагностики).
+    """
+    register_vector(conn)
+    vector = normalize(embedder.embed_texts([query]))[0]
+
+    def attempt(level: FilterLevel) -> list[SearchResult]:
+        where_sql, filter_params = _hybrid_where(level, min_duration_seconds)
+        rows = conn.execute(
+            f"""
+            SELECT id, path, title, artist, genre, 1 - (embedding <=> %s) AS similarity, tempo_bpm, tags
+            FROM tracks
+            WHERE {where_sql}
+            ORDER BY embedding <=> %s
+            LIMIT %s
+            """,
+            [vector, *filter_params, vector, top_n],
+        ).fetchall()
+        return [SearchResult(*row) for row in rows]
+
+    levels = relaxation_ladder(tempo_range, vocals)
+    results, relaxed = run_relaxation_ladder(levels, attempt)
+
+    if not results:
+        raise SearchError("в базе нет проиндексированных треков — сначала запустите index")
+
+    return results, relaxed
 
 
 def export_results(results: list[SearchResult], export_dir: Path) -> list[Path]:

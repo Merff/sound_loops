@@ -28,7 +28,7 @@ import pytest
 from sound_loops.config import Settings
 from sound_loops.db import ensure_database_exists, init_schema
 from sound_loops.ffmpeg_utils import run
-from sound_loops.vlm import MusicQuery, SceneDescription, SceneObservation
+from sound_loops.vlm import MusicQuery, RerankChoice, SceneDescription, SceneObservation
 
 
 def make_silent_loop(path: Path, duration_seconds: float) -> Path:
@@ -154,10 +154,14 @@ class FakeSceneAnalyzer:
     model_id = "fake-scene-analyzer-v1"
     prompt_version = "fake-v1"
 
-    def __init__(self, query: str = "slow dreamy ambient with soft piano and pads, instrumental") -> None:
+    def __init__(
+        self, query: str = "slow dreamy ambient with soft piano and pads", rerank_choice: int = 1
+    ) -> None:
         self._query = query
+        self._rerank_choice = rerank_choice
         self.describe_calls = 0
         self.compose_calls = 0
+        self.rerank_calls = 0
 
     def describe_scene(self, frames) -> SceneObservation:
         self.describe_calls += 1
@@ -165,12 +169,22 @@ class FakeSceneAnalyzer:
 
     def compose_music_query(self, scene: SceneDescription) -> MusicQuery:
         self.compose_calls += 1
-        return MusicQuery(query=self._query)
+        return MusicQuery(query=self._query, vocals="instrumental")
+
+    def rerank(self, scene: SceneDescription, candidate_descriptions) -> RerankChoice:
+        self.rerank_calls += 1
+        return RerankChoice(candidate_index=self._rerank_choice, reasoning="fake reasoning")
 
 
 @pytest.fixture
 def fake_scene_analyzer() -> FakeSceneAnalyzer:
     return FakeSceneAnalyzer()
+
+
+@pytest.fixture
+def make_fake_scene_analyzer():
+    """Фабрика FakeSceneAnalyzer с нестандартными параметрами (например rerank_choice)."""
+    return FakeSceneAnalyzer
 
 
 def _derive_test_database_url() -> str:

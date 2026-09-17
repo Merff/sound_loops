@@ -8,18 +8,23 @@ from sound_loops.vlm import MusicQuery, SceneDescription, SceneObservation
 
 
 def test_music_query_accepts_length_within_bounds():
-    query = MusicQuery(query="slow dreamy ambient with soft piano and warm pads, instrumental")
+    query = MusicQuery(query="slow dreamy ambient with soft piano and warm pads", vocals="instrumental")
     assert query.query.startswith("slow dreamy")
 
 
 def test_music_query_rejects_too_short():
     with pytest.raises(ValidationError):
-        MusicQuery(query="soft piano")
+        MusicQuery(query="soft piano", vocals="instrumental")
 
 
 def test_music_query_rejects_too_long():
     with pytest.raises(ValidationError):
-        MusicQuery(query=" ".join(["word"] * 25))
+        MusicQuery(query=" ".join(["word"] * 25), vocals="instrumental")
+
+
+def test_music_query_rejects_unknown_vocals():
+    with pytest.raises(ValidationError):
+        MusicQuery(query="slow dreamy ambient with soft piano and warm pads", vocals="maybe")
 
 
 def test_scene_observation_rejects_empty_mood():
