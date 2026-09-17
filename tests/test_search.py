@@ -127,6 +127,20 @@ def test_search_tracks_hybrid_widens_tempo_range_when_strict_is_empty(db_conn):
     assert applied == ["расширен диапазон темпа"]
 
 
+def test_search_tracks_hybrid_does_not_exclude_ambiguous_vocals_tag(db_conn):
+    """Разница меньше VOCALS_CONFIDENCE_MARGIN — трек проходит фильтр по вокалу
+    без послаблений, даже если формально "не та" метка чуть выше."""
+    query = _basis(0)
+    _insert_track_with_attrs(db_conn, "ambiguous_vocals.mp3", query, 100.0, {"instrumental": 0.10, "with_vocals": 0.12})
+
+    results, applied = search_tracks_hybrid(
+        db_conn, FixedTextEmbedder(query), "query", tempo_range=(90.0, 110.0), vocals="instrumental", top_n=10
+    )
+
+    assert [r.path for r in results] == ["ambiguous_vocals.mp3"]
+    assert applied == []
+
+
 def test_search_tracks_hybrid_drops_vocals_requirement_when_still_empty(db_conn):
     query = _basis(0)
     _insert_track_with_attrs(db_conn, "wrong_vocals.mp3", query, 100.0, {"instrumental": 0.1, "with_vocals": 0.9})

@@ -16,7 +16,13 @@ import psycopg
 from pgvector.psycopg import register_vector
 
 from sound_loops.embeddings import Embedder, normalize
-from sound_loops.filters import FilterLevel, TempoRange, relaxation_ladder, run_relaxation_ladder
+from sound_loops.filters import (
+    VOCALS_CONFIDENCE_MARGIN,
+    FilterLevel,
+    TempoRange,
+    relaxation_ladder,
+    run_relaxation_ladder,
+)
 from sound_loops.vlm import Vocals
 
 
@@ -85,9 +91,17 @@ def _hybrid_where(
         clauses.append("tempo_bpm BETWEEN %s AND %s")
         params += [level.tempo_range[0], level.tempo_range[1]]
     if level.vocals is not None:
+        # Трек проходит, если его метка вокала уверенно совпадает с искомой,
+        # ИЛИ если у него самого разница между метками мала (шумная
+        # классификация — не исключаем по ней, см. VOCALS_CONFIDENCE_MARGIN).
         other = "with_vocals" if level.vocals == "instrumental" else "instrumental"
-        clauses.append("(tags -> 'vocals' ->> %s)::float >= (tags -> 'vocals' ->> %s)::float")
-        params += [level.vocals, other]
+        clauses.append(
+            "("
+            "(tags -> 'vocals' ->> %s)::float >= (tags -> 'vocals' ->> %s)::float"
+            " OR ABS((tags -> 'vocals' ->> 'with_vocals')::float - (tags -> 'vocals' ->> 'instrumental')::float) < %s"
+            ")"
+        )
+        params += [level.vocals, other, VOCALS_CONFIDENCE_MARGIN]
     return " AND ".join(clauses), params
 
 
