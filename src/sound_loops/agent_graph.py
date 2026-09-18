@@ -33,7 +33,7 @@ from sound_loops.config import Settings
 from sound_loops.embeddings import Embedder
 from sound_loops.ffmpeg_utils import extract_frames
 from sound_loops.motion import estimate_motion
-from sound_loops.render import LoopRow, get_loop_by_path, render_preview
+from sound_loops.render import LoopRow, get_bad_rated_track_ids, get_loop_by_path, render_preview
 from sound_loops.rerank import RERANK_POOL_SIZE, rerank_candidates
 from sound_loops.search import SearchResult
 from sound_loops.vlm import Motion, SceneAnalyzer, SceneDescription
@@ -52,6 +52,7 @@ class AgentState(TypedDict, total=False):
     slot_queries: list[str]
     slot_reasoning: list[str]
     output_paths: list[str]
+    render_ids: list[int]  # id строк renders этого круга — для оценки (rating) в UI
 
     query_log: Annotated[list[dict], operator.add]  # вся история кругов — для UI и для prompt'а plan
     rejected_track_ids: Annotated[list[int], operator.add]  # id треков, уже показанных в прошлых кругах
@@ -110,6 +111,14 @@ def _make_plan_node(conn: psycopg.Connection, embedder: Embedder, analyzer: Scen
         scene = SceneDescription.model_validate(state["scene"])
         rejected_summary = [f"round {e['round']}: {e['query']!r}" for e in state.get("query_log", [])]
 
+        # Дедуп не только в пределах этой сессии (rejected_track_ids), но и
+        # то, что пользователь когда-то отметил "плохо" для этого же лупа в
+        # прошлых сессиях (rating в renders, итерация 5) — постоянно, не
+        # только на время текущего разговора.
+        exclude_ids = set(state.get("rejected_track_ids", [])) | set(
+            get_bad_rated_track_ids(conn, state["loop_id"])
+        )
+
         outcome = plan_tracks(
             analyzer,
             conn,
@@ -119,7 +128,7 @@ def _make_plan_node(conn: psycopg.Connection, embedder: Embedder, analyzer: Scen
             state["loop_duration_seconds"],
             feedback_history=state.get("feedback_history", []),
             rejected_summary=rejected_summary,
-            exclude_track_ids=state.get("rejected_track_ids", []),
+            exclude_track_ids=list(exclude_ids),
         )
         pools = [{"query": query, "candidates": [asdict(c) for c in pool]} for query, pool in outcome.slots]
         return {
@@ -167,15 +176,17 @@ def _make_render_node(conn: psycopg.Connection, settings: Settings):
         round_number = state["rounds"]
 
         output_paths: list[str] = []
+        render_ids: list[int] = []
         query_log_entries: list[dict] = []
         for candidate, query, reasoning in zip(
             state["candidates"], state["slot_queries"], state["slot_reasoning"], strict=True
         ):
             duration = _track_duration(conn, candidate["id"])
-            output_path = render_preview(
+            render_id, output_path = render_preview(
                 conn, settings, loop, candidate["id"], candidate["path"], duration, state["analysis_id"], query
             )
             output_paths.append(str(output_path))
+            render_ids.append(render_id)
             query_log_entries.append(
                 {
                     "round": round_number,
@@ -188,6 +199,7 @@ def _make_render_node(conn: psycopg.Connection, settings: Settings):
 
         return {
             "output_paths": output_paths,
+            "render_ids": render_ids,
             "query_log": query_log_entries,
             "rejected_track_ids": [c["id"] for c in state["candidates"]],
         }

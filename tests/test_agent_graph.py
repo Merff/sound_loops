@@ -9,6 +9,7 @@ from langgraph.types import Command
 from sound_loops.agent_graph import build_agent_graph, build_eval_graph, initial_state
 from sound_loops.index import index_tracks
 from sound_loops.ingest import IngestReport, ingest_loop_file, ingest_track_file
+from sound_loops.render import set_render_rating
 
 
 def _seed(conn, settings, get_silent_loop, get_tone_track, tmp_path, embedder, n_tracks=8, duration=4.0):
@@ -151,6 +152,29 @@ def test_agent_graph_session_resumes_by_thread_id_after_restart(
 
         second_state = graph_2.invoke(Command(resume="brighter"), config)
         assert second_state["rounds"] == 1
+
+
+def test_agent_graph_excludes_track_rated_bad_for_this_loop_in_a_new_session(
+    db_conn, db_settings, get_silent_loop, get_tone_track, tmp_path, fake_embedder, fake_scene_analyzer, checkpointer
+):
+    """rating='bad' на конкретном рендере исключает трек из поиска для того
+    же лупа в НОВОЙ сессии (новый thread_id) — не только в пределах одного
+    разговора, как rejected_track_ids (см. render.py::get_bad_rated_track_ids)."""
+    _loop_id, loop_path = _seed(db_conn, db_settings, get_silent_loop, get_tone_track, tmp_path, fake_embedder)
+    fake_scene_analyzer.set_tool_call_turns(_three_calls("a", "b", "c") * 3)
+
+    graph = build_agent_graph(db_conn, fake_embedder, fake_scene_analyzer, db_settings, checkpointer)
+
+    first_config = {"configurable": {"thread_id": str(uuid.uuid4())}}
+    first = graph.invoke(initial_state(str(loop_path), db_settings), first_config)
+    bad_track_id = first["candidates"][0]["id"]
+    render_id = first["render_ids"][0]
+    set_render_rating(db_conn, render_id, "bad")
+
+    second_config = {"configurable": {"thread_id": str(uuid.uuid4())}}
+    second = graph.invoke(initial_state(str(loop_path), db_settings), second_config)
+
+    assert bad_track_id not in {c["id"] for c in second["candidates"]}
 
 
 def test_eval_graph_stops_after_rerank_without_rendering(

@@ -86,7 +86,7 @@ def match_once(
     track_duration = conn.execute(
         "SELECT duration_seconds FROM tracks WHERE id = %s", (best.id,)
     ).fetchone()[0]
-    output_path = render_preview(
+    _render_id, output_path = render_preview(
         conn, settings, loop, best.id, best.path, track_duration, analysis.id, music_query.query
     )
 

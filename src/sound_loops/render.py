@@ -114,11 +114,13 @@ def render_preview(
     track_duration_seconds: float,
     analysis_id: int | None = None,
     music_query: str | None = None,
-) -> Path:
+) -> tuple[int, Path]:
     """Вырезать случайный отрезок трека под длительность лупа, склеить с
     видео и записать renders. Общий хвост render_once/match_once/агентного
     узла render (итерация 5) — каждый по-своему выбирает трек, дальше всё
-    одинаково. analysis_id/music_query — NULL для случайного baseline'а."""
+    одинаково. analysis_id/music_query — NULL для случайного baseline'а.
+    Возвращает (id рендера, путь) — id нужен агентному UI, чтобы потом
+    привязать к этому конкретному превью оценку пользователя (rating)."""
     start_seconds = pick_random_start(track_duration_seconds, loop.duration_seconds)
 
     settings.output_dir.mkdir(parents=True, exist_ok=True)
@@ -139,17 +141,18 @@ def render_preview(
     finally:
         tmp_audio_path.unlink(missing_ok=True)
 
-    conn.execute(
+    row = conn.execute(
         """
         INSERT INTO renders
             (loop_id, track_id, start_seconds, output_path, duration_seconds, analysis_id, music_query)
         VALUES (%s, %s, %s, %s, %s, %s, %s)
+        RETURNING id
         """,
         (loop.id, track_id, start_seconds, str(output_path), loop.duration_seconds, analysis_id, music_query),
-    )
+    ).fetchone()
     conn.commit()
 
-    return output_path
+    return row[0], output_path
 
 
 def render_once(
@@ -160,4 +163,25 @@ def render_once(
     """Собрать одно превью: луп + случайный отрезок трека под его длительность."""
     loop = get_loop_by_path(conn, loop_path, settings) if loop_path else get_random_loop(conn)
     track = get_random_track(conn, loop.duration_seconds)
-    return render_preview(conn, settings, loop, track.id, track.path, track.duration_seconds)
+    _render_id, output_path = render_preview(conn, settings, loop, track.id, track.path, track.duration_seconds)
+    return output_path
+
+
+def set_render_rating(conn: psycopg.Connection, render_id: int, rating: str) -> None:
+    """Пользовательская оценка превью в UI (итерация 5) — good/neutral/bad,
+    см. migrations/0007. rating валиден по CHECK в схеме, здесь не дублируем
+    проверку — некорректное значение просто упадёт на INSERT/UPDATE."""
+    conn.execute("UPDATE renders SET rating = %s WHERE id = %s", (rating, render_id))
+    conn.commit()
+
+
+def get_bad_rated_track_ids(conn: psycopg.Connection, loop_id: int) -> list[int]:
+    """Треки, отмеченные "плохо" именно для этого лупа — узел plan (агент,
+    итерация 5) исключает их из поиска для этого лупа во всех будущих
+    сессиях, не только в пределах текущей (см. docs/sound_loops-iteration-5.md).
+    Намеренно не глобально: трек, не подошедший одной сцене, может подойти
+    другой."""
+    rows = conn.execute(
+        "SELECT DISTINCT track_id FROM renders WHERE loop_id = %s AND rating = 'bad'", (loop_id,)
+    ).fetchall()
+    return [row[0] for row in rows]

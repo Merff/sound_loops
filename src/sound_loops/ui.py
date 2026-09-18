@@ -24,7 +24,10 @@ from langgraph.types import Command
 from sound_loops.agent_graph import build_agent_graph, initial_state
 from sound_loops.config import Settings, load_settings
 from sound_loops.hf_cache import ensure_offline_if_cached
+from sound_loops.render import set_render_rating
 from sound_loops.vlm import OllamaSceneAnalyzer
+
+_RATING_LABELS = {"хорошо": "good", "нейтрально": "neutral", "плохо": "bad"}
 
 if TYPE_CHECKING:
     import gradio as gr
@@ -104,7 +107,15 @@ def build_app(settings: Settings) -> gr.Blocks:
         state = graph.invoke(initial_state(str(loop_path), settings), config)
 
         videos = _pad_videos(state["output_paths"], settings.agent_slot_count)
-        return (*videos, _format_internals(state), thread_id, _round_label(state, graph.get_state(config).next))
+        ratings_reset = [None] * settings.agent_slot_count
+        return (
+            *videos,
+            *ratings_reset,
+            _format_internals(state),
+            thread_id,
+            state.get("render_ids", []),
+            _round_label(state, graph.get_state(config).next),
+        )
 
     def run_feedback(feedback_text: str, thread_id: str | None):
         if not thread_id:
@@ -112,11 +123,28 @@ def build_app(settings: Settings) -> gr.Blocks:
         config = {"configurable": {"thread_id": thread_id}}
         state = graph.invoke(Command(resume=feedback_text), config)
         videos = _pad_videos(state["output_paths"], settings.agent_slot_count)
-        return (*videos, _format_internals(state), "", _round_label(state, graph.get_state(config).next))
+        ratings_reset = [None] * settings.agent_slot_count
+        return (
+            *videos,
+            *ratings_reset,
+            _format_internals(state),
+            "",
+            state.get("render_ids", []),
+            _round_label(state, graph.get_state(config).next),
+        )
+
+    def _make_rate_handler(slot_index: int):
+        def handler(render_ids: list[int], rating_label: str | None) -> None:
+            if not rating_label or slot_index >= len(render_ids):
+                return
+            set_render_rating(conn, render_ids[slot_index], _RATING_LABELS[rating_label])
+
+        return handler
 
     with gr.Blocks(title="sound_loops") as demo:
         gr.Markdown("# sound_loops — агент подбора музыки к видео-лупу")
         thread_state = gr.State(None)
+        render_ids_state = gr.State([])
 
         with gr.Row():
             upload = gr.Video(label="Загрузить видео-луп", sources=["upload"])
@@ -124,8 +152,13 @@ def build_app(settings: Settings) -> gr.Blocks:
         run_btn = gr.Button("Подобрать музыку", variant="primary")
         round_label = gr.Markdown("")
 
+        video_slots = []
+        rating_slots = []
         with gr.Row():
-            video_slots = [gr.Video(label=f"Вариант {i + 1}") for i in range(settings.agent_slot_count)]
+            for i in range(settings.agent_slot_count):
+                with gr.Column():
+                    video_slots.append(gr.Video(label=f"Вариант {i + 1}"))
+                    rating_slots.append(gr.Radio(list(_RATING_LABELS), label="Оценка", value=None))
 
         with gr.Accordion("Что решила модель", open=False):
             internals = gr.Markdown("")
@@ -133,11 +166,14 @@ def build_app(settings: Settings) -> gr.Blocks:
         feedback = gr.Textbox(label="Обратная связь (например «мрачнее» или «без вокала»)")
         feedback_btn = gr.Button("Переподобрать")
 
-        run_outputs = [*video_slots, internals, thread_state, round_label]
+        run_outputs = [*video_slots, *rating_slots, internals, thread_state, render_ids_state, round_label]
         run_btn.click(run_first_pass, [upload, library], run_outputs)
 
-        feedback_outputs = [*video_slots, internals, feedback, round_label]
+        feedback_outputs = [*video_slots, *rating_slots, internals, feedback, render_ids_state, round_label]
         feedback_btn.click(run_feedback, [feedback, thread_state], feedback_outputs)
+
+        for i, rating_radio in enumerate(rating_slots):
+            rating_radio.change(_make_rate_handler(i), [render_ids_state, rating_radio], [])
 
     # _checkpointer_cm не используется ни в одном замыкании выше — без этой
     # ссылки сборщик мусора закроет его соединение сразу после возврата из
