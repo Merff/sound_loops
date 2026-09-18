@@ -66,8 +66,7 @@ def build_app(settings: Settings) -> gr.Blocks:
     # ensure_offline_if_cached должен отработать ДО импорта gradio — у gradio
     # своя транзитивная зависимость на huggingface_hub, и если она успеет
     # импортироваться первой, HF_HUB_OFFLINE, выставленный чуть позже, часть
-    # её внутренних клиентов не подхватывает (см. hf_cache.py) — конкретно
-    # это и вызывало десятки лишних HTTP-запросов к HF Hub на каждый `sound-loops ui`.
+    # её внутренних клиентов не подхватывает (см. hf_cache.py).
     ensure_offline_if_cached(settings.clap_checkpoint)
     import gradio as gr
 

@@ -165,13 +165,15 @@ class FakeSceneAnalyzer:
         self.rerank_calls = 0
         self.bind_tools_calls = 0
         self._tool_call_turns: list[list[dict]] = []
+        self.last_feedback_history: list[str] = []
 
     def describe_scene(self, frames) -> SceneObservation:
         self.describe_calls += 1
         return SceneObservation(setting="domestic", mood=["calm"])
 
-    def compose_music_query(self, scene: SceneDescription) -> MusicQuery:
+    def compose_music_query(self, scene: SceneDescription, feedback_history=()) -> MusicQuery:
         self.compose_calls += 1
+        self.last_feedback_history = list(feedback_history)
         return MusicQuery(query=self._query, vocals="instrumental")
 
     def rerank(self, scene: SceneDescription, candidate_descriptions) -> RerankChoice:

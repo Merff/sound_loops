@@ -91,6 +91,28 @@ def test_plan_tracks_falls_back_when_model_never_calls_tool(db_conn, fake_embedd
     assert fake_scene_analyzer.compose_calls == 3
 
 
+def test_plan_tracks_fallback_passes_feedback_history_to_compose_music_query(
+    db_conn, fake_embedder, fake_scene_analyzer
+):
+    """Регрессия: резервный путь раньше звал compose_music_query(scene) без
+    feedback_history — «мрачнее»/«без вокала» молча игнорировалось для
+    слотов, закрытых этим путём."""
+    _seed_tracks(db_conn, fake_embedder)
+    fake_scene_analyzer.set_tool_call_turns([[], [], [], [], [], []])
+
+    plan_tracks(
+        fake_scene_analyzer,
+        db_conn,
+        fake_embedder,
+        Settings(database_url="postgresql://x/x"),
+        SCENE,
+        5.0,
+        feedback_history=["darker, no vocals"],
+    )
+
+    assert fake_scene_analyzer.last_feedback_history == ["darker, no vocals"]
+
+
 def test_plan_tracks_fallback_fills_only_missing_slots(db_conn, fake_embedder, fake_scene_analyzer):
     """Модель вызвала инструмент один раз, потом дважды подряд промолчала —
     резервный путь достаёт только недостающие 2 слота, не все 3."""

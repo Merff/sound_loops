@@ -139,8 +139,10 @@ class SceneAnalyzer(Protocol):
     def describe_scene(self, frames: Sequence[bytes]) -> SceneObservation:
         """Кадры лупа (JPEG-байты) -> обстановка и настроение сцены (без motion)."""
 
-    def compose_music_query(self, scene: SceneDescription) -> MusicQuery:
-        """Полное описание сцены -> короткий текстовый запрос для CLAP-поиска музыки."""
+    def compose_music_query(self, scene: SceneDescription, feedback_history: Sequence[str] = ()) -> MusicQuery:
+        """Полное описание сцены (+ опционально текст обратной связи пользователя,
+        см. агентный резервный путь в agent_planner.py) -> короткий текстовый
+        запрос для CLAP-поиска музыки."""
 
     def rerank(self, scene: SceneDescription, candidate_descriptions: Sequence[str]) -> RerankChoice:
         """Описание сцены + пронумерованные читаемые описания кандидатов -> выбор + объяснение."""
@@ -242,7 +244,7 @@ _MUSIC_PROMPT = ChatPromptTemplate.from_messages(
         ("system", _MUSIC_SYSTEM_PROMPT),
         (
             "human",
-            "Setting: {setting}, mood {mood}, motion {motion}\nQuery:",
+            "Setting: {setting}, mood {mood}, motion {motion}{feedback}\nQuery:",
         ),
     ]
 )
@@ -314,12 +316,18 @@ class OllamaSceneAnalyzer:
     def describe_scene(self, frames: Sequence[bytes]) -> SceneObservation:
         return self._scene_chain.invoke(frames)
 
-    def compose_music_query(self, scene: SceneDescription) -> MusicQuery:
+    def compose_music_query(self, scene: SceneDescription, feedback_history: Sequence[str] = ()) -> MusicQuery:
+        feedback = ""
+        if feedback_history:
+            feedback = "\nUser feedback on previous suggestions (most recent last), take it into account: " + "; ".join(
+                feedback_history
+            )
         return self._music_chain.invoke(
             {
                 "setting": scene.setting,
                 "mood": ", ".join(scene.mood),
                 "motion": scene.motion,
+                "feedback": feedback,
             }
         )
 

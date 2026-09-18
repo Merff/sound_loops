@@ -189,7 +189,9 @@ def plan_tracks(
             continue
 
         # Второй раз подряд без вызова инструмента — резервный путь.
-        fallback_query = analyzer.compose_music_query(scene)
+        # feedback_history передаётся и сюда — иначе "мрачнее"/"без вокала"
+        # молча игнорировалось бы для слотов, закрытых этим путём.
+        fallback_query = analyzer.compose_music_query(scene, feedback_history)
         run_search(fallback_query.query, vocals=fallback_query.vocals)
         fallback_used += 1
         no_tool_streak = 0
@@ -198,7 +200,7 @@ def plan_tracks(
     # меньше settings.agent_slot_count кандидатов нельзя (см. docstring),
     # достающие слоты закрываются тем же резервным путём.
     while len(calls_log) < slot_count:
-        fallback_query = analyzer.compose_music_query(scene)
+        fallback_query = analyzer.compose_music_query(scene, feedback_history)
         run_search(fallback_query.query, vocals=fallback_query.vocals)
         fallback_used += 1
 
