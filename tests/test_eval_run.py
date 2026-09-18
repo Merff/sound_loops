@@ -199,6 +199,47 @@ def test_save_and_load_run_roundtrip(
     assert loaded == run
 
 
+def test_run_eval_agent_computes_hit_at_k_over_merged_query_pools(
+    db_conn, db_settings, get_silent_loop, get_tone_track, tmp_path, fake_embedder, fake_scene_analyzer
+):
+    """use_agent=True: hit@k считается по объединению кандидатов всех 3
+    query агента (см. docs/sound_loops-iteration-5.md, раздел «Эвалы»)."""
+    loop_path, track_paths = _setup(db_conn, db_settings, get_silent_loop, get_tone_track, tmp_path, fake_embedder)
+    fake_scene_analyzer.set_tool_call_turns(
+        [[{"query": "query one"}, {"query": "query two"}, {"query": "query three"}]]
+    )
+
+    run = run_eval(
+        db_conn, fake_scene_analyzer, fake_embedder, db_settings, _dataset(loop_path, track_paths),
+        temperature=0.0, use_agent=True,
+    )
+
+    assert run.use_agent is True
+    result = run.loops[0]
+    assert len(result.queries) == 3
+    assert result.hit_at_1 is True
+    assert result.tool_calls_made == 3
+    assert result.fallback_used == 0
+    assert run.aggregates.agent_tool_calls_total == 3
+    assert run.aggregates.agent_fallback_used_total == 0
+
+
+def test_run_eval_agent_does_not_render_anything(
+    db_conn, db_settings, get_silent_loop, get_tone_track, tmp_path, fake_embedder, fake_scene_analyzer
+):
+    loop_path, track_paths = _setup(db_conn, db_settings, get_silent_loop, get_tone_track, tmp_path, fake_embedder)
+    fake_scene_analyzer.set_tool_call_turns(
+        [[{"query": "query one"}, {"query": "query two"}, {"query": "query three"}]]
+    )
+
+    run_eval(
+        db_conn, fake_scene_analyzer, fake_embedder, db_settings, _dataset(loop_path, track_paths),
+        temperature=0.0, use_agent=True,
+    )
+
+    assert db_conn.execute("SELECT COUNT(*) FROM renders").fetchone()[0] == 0
+
+
 def test_load_run_backfills_mean_penalized_rank_for_old_files(tmp_path):
     """Прогоны, сохранённые до появления mean_penalized_rank (итерация 4),
     не должны стать нечитаемыми — см. load_run."""

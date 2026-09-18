@@ -24,6 +24,7 @@ from urllib.parse import urlsplit, urlunsplit
 import numpy as np
 import psycopg
 import pytest
+from langchain_core.messages import AIMessage
 
 from sound_loops.config import Settings
 from sound_loops.db import ensure_database_exists, init_schema
@@ -162,6 +163,8 @@ class FakeSceneAnalyzer:
         self.describe_calls = 0
         self.compose_calls = 0
         self.rerank_calls = 0
+        self.bind_tools_calls = 0
+        self._tool_call_turns: list[list[dict]] = []
 
     def describe_scene(self, frames) -> SceneObservation:
         self.describe_calls += 1
@@ -174,6 +177,36 @@ class FakeSceneAnalyzer:
     def rerank(self, scene: SceneDescription, candidate_descriptions) -> RerankChoice:
         self.rerank_calls += 1
         return RerankChoice(candidate_index=self._rerank_choice, reasoning="fake reasoning")
+
+    def bind_tools(self, tools):
+        """Возвращает раз заданный через set_tool_call_turns сценарий ответов
+        вместо похода в Ollama — тесты узла plan (agent_planner.py)."""
+        self.bind_tools_calls += 1
+        return _ScriptedToolModel(self._tool_call_turns)
+
+    def set_tool_call_turns(self, turns: list[list[dict]]) -> None:
+        """turns[i] — список kwargs-словарей для вызовов search_music на i-м
+        ходу модели; пустой список означает "модель ответила текстом,
+        инструмент не вызван" (для тестов резервного пути)."""
+        self._tool_call_turns = turns
+
+
+class _ScriptedToolModel:
+    """Фейковая модель с привязанными инструментами: на каждый invoke()
+    отдаёт следующий заскриптованный ход (см. FakeSceneAnalyzer.set_tool_call_turns)."""
+
+    def __init__(self, turns: list[list[dict]]) -> None:
+        self._turns = list(turns)
+        self._used = 0
+
+    def invoke(self, messages):
+        calls = self._turns[self._used] if self._used < len(self._turns) else []
+        self._used += 1
+        tool_calls = [
+            {"name": "search_music", "args": args, "id": f"call_{self._used}_{i}", "type": "tool_call"}
+            for i, args in enumerate(calls)
+        ]
+        return AIMessage(content="" if tool_calls else "done", tool_calls=tool_calls)
 
 
 @pytest.fixture
@@ -203,6 +236,17 @@ def test_database_url() -> str:
     ensure_database_exists(url)
     init_schema(url)
     return url
+
+
+@pytest.fixture
+def checkpointer(test_database_url: str):
+    """Postgres-чекпойнтер LangGraph (итерация 5) — его таблицы заводятся
+    отдельно от yoyo-схемы, см. cli.py::init_db_cmd и docs/sound_loops-iteration-5.md."""
+    from langgraph.checkpoint.postgres import PostgresSaver
+
+    with PostgresSaver.from_conn_string(test_database_url) as saver:
+        saver.setup()
+        yield saver
 
 
 @pytest.fixture

@@ -1,4 +1,4 @@
-.PHONY: sync init-db ingest render render-loop index tag-tracks search analyze analyze-loop match match-loop eval-run eval-run-loop eval-compare blind-eval clear-renders clear-analyses clap-check test lint clean
+.PHONY: sync init-db ingest render render-loop index tag-tracks search analyze analyze-loop match match-loop ui eval-run eval-run-loop eval-compare blind-eval clear-renders clear-analyses clap-check test lint clean
 
 # Установить зависимости проекта
 sync:
@@ -67,18 +67,23 @@ match-loop:
 	fi
 	uv run sound-loops match --loop $(LOOP) $(if $(FILTERS),--filters,) $(if $(RERANK),--rerank,)
 
+# Запустить веб-интерфейс агента (итерация 5): загрузка -> 3 превью -> обратная связь
+ui:
+	uv run sound-loops ui
+
 # Прогнать эвал по всему evals/dataset.json, напечатать метрики и сохранить прогон.
 # Конфигурация (итерация 4): make eval-run FILTERS=1 RERANK=1
+# Первый проход графа-агента (итерация 5, несовместимо с FILTERS/RERANK): make eval-run AGENT=1
 eval-run:
-	uv run sound-loops eval-run $(if $(FILTERS),--filters,) $(if $(RERANK),--rerank,)
+	uv run sound-loops eval-run $(if $(FILTERS),--filters,) $(if $(RERANK),--rerank,) $(if $(AGENT),--agent,)
 
-# То же самое для одного лупа из разметки: make eval-run-loop LOOP=data/loops/my_loop.mp4 [FILTERS=1] [RERANK=1]
+# То же самое для одного лупа из разметки: make eval-run-loop LOOP=data/loops/my_loop.mp4 [FILTERS=1] [RERANK=1] [AGENT=1]
 eval-run-loop:
 	@if [ -z "$(LOOP)" ]; then \
 		echo "Укажи LOOP=путь/к/лупу.mp4, как он записан в evals/dataset.json"; \
 		exit 1; \
 	fi
-	uv run sound-loops eval-run --loop $(LOOP) $(if $(FILTERS),--filters,) $(if $(RERANK),--rerank,)
+	uv run sound-loops eval-run --loop $(LOOP) $(if $(FILTERS),--filters,) $(if $(RERANK),--rerank,) $(if $(AGENT),--agent,)
 
 # Сравнить два сохранённых прогона: make eval-compare A=evals/runs/x.json B=evals/runs/y.json
 eval-compare:

@@ -13,8 +13,6 @@ docs/sound_loops-iteration-4.md) переключают гибридный по�
 
 from __future__ import annotations
 
-import tempfile
-import uuid
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -23,9 +21,8 @@ import psycopg
 from sound_loops.analysis import AnalysisRecord, get_cached_analysis
 from sound_loops.config import Settings
 from sound_loops.embeddings import Embedder
-from sound_loops.ffmpeg_utils import extract_audio_segment, mux_loop_with_audio
 from sound_loops.filters import tempo_range_for_motion
-from sound_loops.render import LoopRow, get_loop_by_path, get_random_loop, pick_random_start
+from sound_loops.render import LoopRow, get_loop_by_path, get_random_loop, render_preview
 from sound_loops.rerank import RERANK_POOL_SIZE, rerank_candidates
 from sound_loops.search import SearchResult, search_tracks, search_tracks_hybrid
 from sound_loops.vlm import SceneAnalyzer
@@ -89,35 +86,9 @@ def match_once(
     track_duration = conn.execute(
         "SELECT duration_seconds FROM tracks WHERE id = %s", (best.id,)
     ).fetchone()[0]
-    start_seconds = pick_random_start(track_duration, loop.duration_seconds)
-
-    settings.output_dir.mkdir(parents=True, exist_ok=True)
-    output_name = f"{Path(loop.path).stem}_{uuid.uuid4().hex[:8]}.mp4"
-    output_path = settings.output_dir / output_name
-
-    with tempfile.NamedTemporaryFile(suffix=".m4a", delete=False) as tmp:
-        tmp_audio_path = Path(tmp.name)
-    try:
-        extract_audio_segment(
-            track_path=Path(best.path),
-            start_seconds=start_seconds,
-            duration_seconds=loop.duration_seconds,
-            fade_seconds=settings.fade_seconds,
-            output_path=tmp_audio_path,
-        )
-        mux_loop_with_audio(Path(loop.path), tmp_audio_path, output_path)
-    finally:
-        tmp_audio_path.unlink(missing_ok=True)
-
-    conn.execute(
-        """
-        INSERT INTO renders
-            (loop_id, track_id, start_seconds, output_path, duration_seconds, analysis_id, music_query)
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
-        """,
-        (loop.id, best.id, start_seconds, str(output_path), loop.duration_seconds, analysis.id, music_query.query),
+    output_path = render_preview(
+        conn, settings, loop, best.id, best.path, track_duration, analysis.id, music_query.query
     )
-    conn.commit()
 
     return MatchResult(
         loop=loop,

@@ -1,0 +1,855 @@
+{
+  "timestamp": "2026-09-17T14:56:53.121831+00:00",
+  "commit": "940b388",
+  "model": "qwen3-vl:4b-instruct",
+  "prompt_version": "v8",
+  "temperature": 0.0,
+  "search_depth": 500,
+  "use_filters": false,
+  "use_rerank": false,
+  "use_agent": true,
+  "loops": [
+    {
+      "loop": "data/loops/loop-1.mp4",
+      "setting_correct": true,
+      "predicted_setting": "urban",
+      "true_setting": "urban",
+      "mood_overlap": 0.0,
+      "predicted_mood": [
+        "comic",
+        "festive"
+      ],
+      "true_mood": [
+        "epic"
+      ],
+      "music_query": "Electronic synth pulses, fast tempo, comic festive energy, no vocals; Hip-Hop beat drops, heavy bass, fast motion, comedic festive vibe, instrumental; Folk acoustic guitar, bright strings, playful motion, festive comic mood, no vocals",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": 137,
+      "relaxed_filters": [],
+      "rerank_reasoning": null,
+      "queries": [
+        "Electronic synth pulses, fast tempo, comic festive energy, no vocals",
+        "Hip-Hop beat drops, heavy bass, fast motion, comedic festive vibe, instrumental",
+        "Folk acoustic guitar, bright strings, playful motion, festive comic mood, no vocals"
+      ],
+      "tool_calls_made": 3,
+      "fallback_used": 0
+    },
+    {
+      "loop": "data/loops/loop-2.mp4",
+      "setting_correct": false,
+      "predicted_setting": "combat",
+      "true_setting": "domestic",
+      "mood_overlap": 0.5,
+      "predicted_mood": [
+        "tense",
+        "aggressive"
+      ],
+      "true_mood": [
+        "tense"
+      ],
+      "music_query": "Electronic drum machine beats, fast tempo, aggressive tension, no vocals; Rock guitar riffs, driving drums, chaotic energy, no vocals; Hip-Hop heavy bass, syncopated rhythm, intense aggression, no vocals",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": 54,
+      "relaxed_filters": [],
+      "rerank_reasoning": null,
+      "queries": [
+        "Electronic drum machine beats, fast tempo, aggressive tension, no vocals",
+        "Rock guitar riffs, driving drums, chaotic energy, no vocals",
+        "Hip-Hop heavy bass, syncopated rhythm, intense aggression, no vocals"
+      ],
+      "tool_calls_made": 3,
+      "fallback_used": 0
+    },
+    {
+      "loop": "data/loops/loop-3.mp4",
+      "setting_correct": true,
+      "predicted_setting": "nature",
+      "true_setting": "nature",
+      "mood_overlap": 0.3333333333333333,
+      "predicted_mood": [
+        "calm",
+        "dreamy"
+      ],
+      "true_mood": [
+        "melancholic",
+        "dreamy"
+      ],
+      "music_query": "Folk acoustic guitar ambient slow tempo dreamy nature sounds; Electronic synth pads slow tempo atmospheric dreamy motion; Instrumental ambient piano slow tempo serene motion",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": 129,
+      "relaxed_filters": [],
+      "rerank_reasoning": null,
+      "queries": [
+        "Folk acoustic guitar ambient slow tempo dreamy nature sounds",
+        "Electronic synth pads slow tempo atmospheric dreamy motion",
+        "Instrumental ambient piano slow tempo serene motion"
+      ],
+      "tool_calls_made": 3,
+      "fallback_used": 0
+    },
+    {
+      "loop": "data/loops/loop-4.mp4",
+      "setting_correct": false,
+      "predicted_setting": "combat",
+      "true_setting": "scifi_fantasy",
+      "mood_overlap": 0.5,
+      "predicted_mood": [
+        "tragic"
+      ],
+      "true_mood": [
+        "nostalgic",
+        "tragic"
+      ],
+      "music_query": "Electronic synth pulses with chaotic energy, tragic atmosphere, driving tempo; Rock guitars scream with raw emotion, chaotic motion, tragic mood, fast tempo; Hip-Hop beat drops heavy bass, tragic rhythm, chaotic motion, no vocals",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": 253,
+      "relaxed_filters": [],
+      "rerank_reasoning": null,
+      "queries": [
+        "Electronic synth pulses with chaotic energy, tragic atmosphere, driving tempo",
+        "Rock guitars scream with raw emotion, chaotic motion, tragic mood, fast tempo",
+        "Hip-Hop beat drops heavy bass, tragic rhythm, chaotic motion, no vocals"
+      ],
+      "tool_calls_made": 3,
+      "fallback_used": 0
+    },
+    {
+      "loop": "data/loops/loop-5.mp4",
+      "setting_correct": true,
+      "predicted_setting": "performance",
+      "true_setting": "performance",
+      "mood_overlap": 0.0,
+      "predicted_mood": [
+        "eerie"
+      ],
+      "true_mood": [
+        "comic"
+      ],
+      "music_query": "Electronic synth pulses with eerie, slow-motion rhythm, ambient and unsettling atmosphere; Rock guitar distortion with slow, eerie tempo, driving but haunting energy; Hip-Hop beat with deep bass, eerie rhythm, minimalistic and unsettling percussion",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": 649,
+      "relaxed_filters": [],
+      "rerank_reasoning": null,
+      "queries": [
+        "Electronic synth pulses with eerie, slow-motion rhythm, ambient and unsettling atmosphere",
+        "Rock guitar distortion with slow, eerie tempo, driving but haunting energy",
+        "Hip-Hop beat with deep bass, eerie rhythm, minimalistic and unsettling percussion"
+      ],
+      "tool_calls_made": 3,
+      "fallback_used": 0
+    },
+    {
+      "loop": "data/loops/loop-6.mp4",
+      "setting_correct": true,
+      "predicted_setting": "nature",
+      "true_setting": "nature",
+      "mood_overlap": 0.25,
+      "predicted_mood": [
+        "joyful",
+        "tragic"
+      ],
+      "true_mood": [
+        "joyful",
+        "nostalgic",
+        "dreamy"
+      ],
+      "music_query": "Electronic synth pulses with chaotic energy, joyful yet tragic tempo; Rock guitar riff drives chaotic motion, tragic joy in live drumbeat; Hip-Hop beat with heavy bass, joyful tragic flow, rhythmic chaos",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": 599,
+      "relaxed_filters": [],
+      "rerank_reasoning": null,
+      "queries": [
+        "Electronic synth pulses with chaotic energy, joyful yet tragic tempo",
+        "Rock guitar riff drives chaotic motion, tragic joy in live drumbeat",
+        "Hip-Hop beat with heavy bass, joyful tragic flow, rhythmic chaos"
+      ],
+      "tool_calls_made": 3,
+      "fallback_used": 0
+    },
+    {
+      "loop": "data/loops/loop-7.mp4",
+      "setting_correct": true,
+      "predicted_setting": "domestic",
+      "true_setting": "domestic",
+      "mood_overlap": 0.25,
+      "predicted_mood": [
+        "calm",
+        "dreamy"
+      ],
+      "true_mood": [
+        "nostalgic",
+        "comic",
+        "dreamy"
+      ],
+      "music_query": "ambient piano with soft synth pads, slow tempo, dreamy and serene atmosphere; folk acoustic guitar with light strings, gentle tempo, warm and nostalgic mood; instrumental electronic with atmospheric pads, slow tempo, meditative and calm vibe",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": 319,
+      "relaxed_filters": [],
+      "rerank_reasoning": null,
+      "queries": [
+        "ambient piano with soft synth pads, slow tempo, dreamy and serene atmosphere",
+        "folk acoustic guitar with light strings, gentle tempo, warm and nostalgic mood",
+        "instrumental electronic with atmospheric pads, slow tempo, meditative and calm vibe"
+      ],
+      "tool_calls_made": 3,
+      "fallback_used": 0
+    },
+    {
+      "loop": "data/loops/loop-8.mp4",
+      "setting_correct": true,
+      "predicted_setting": "combat",
+      "true_setting": "combat",
+      "mood_overlap": 0.3333333333333333,
+      "predicted_mood": [
+        "aggressive",
+        "epic"
+      ],
+      "true_mood": [
+        "epic",
+        "tense"
+      ],
+      "music_query": "Electronic drums, aggressive synths, driving tempo, epic battle energy; Rock guitars, live drums, fast tempo, aggressive and epic atmosphere; Hip-Hop heavy bass, rhythmic beat, intense and aggressive mood",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": 188,
+      "relaxed_filters": [],
+      "rerank_reasoning": null,
+      "queries": [
+        "Electronic drums, aggressive synths, driving tempo, epic battle energy",
+        "Rock guitars, live drums, fast tempo, aggressive and epic atmosphere",
+        "Hip-Hop heavy bass, rhythmic beat, intense and aggressive mood"
+      ],
+      "tool_calls_made": 3,
+      "fallback_used": 0
+    },
+    {
+      "loop": "data/loops/loop-9.mp4",
+      "setting_correct": false,
+      "predicted_setting": "combat",
+      "true_setting": "abstract",
+      "mood_overlap": 0.3333333333333333,
+      "predicted_mood": [
+        "aggressive",
+        "tense"
+      ],
+      "true_mood": [
+        "epic",
+        "aggressive"
+      ],
+      "music_query": "Electronic synth pulses, driving beat, aggressive tension, slow motion tempo; Rock guitar riffs, heavy drums, slow-burning intensity, tense atmosphere; Hip-Hop bass thump, sampled percussion, slow-motion aggression, gritty texture",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": 14,
+      "relaxed_filters": [],
+      "rerank_reasoning": null,
+      "queries": [
+        "Electronic synth pulses, driving beat, aggressive tension, slow motion tempo",
+        "Rock guitar riffs, heavy drums, slow-burning intensity, tense atmosphere",
+        "Hip-Hop bass thump, sampled percussion, slow-motion aggression, gritty texture"
+      ],
+      "tool_calls_made": 3,
+      "fallback_used": 0
+    },
+    {
+      "loop": "data/loops/loop-10.mp4",
+      "setting_correct": true,
+      "predicted_setting": "urban",
+      "true_setting": "urban",
+      "mood_overlap": 0.5,
+      "predicted_mood": [
+        "tense",
+        "aggressive"
+      ],
+      "true_mood": [
+        "tense"
+      ],
+      "music_query": "Electronic drum machine beats, driving tempo, aggressive tension, no vocals; Rock guitar riff, live drums, fast tempo, intense mood, no vocals; Hip-Hop bass-heavy beat, rhythmic pulse, dark energy, instrumental",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": null,
+      "relaxed_filters": [],
+      "rerank_reasoning": null,
+      "queries": [
+        "Electronic drum machine beats, driving tempo, aggressive tension, no vocals",
+        "Rock guitar riff, live drums, fast tempo, intense mood, no vocals",
+        "Hip-Hop bass-heavy beat, rhythmic pulse, dark energy, instrumental"
+      ],
+      "tool_calls_made": 3,
+      "fallback_used": 0
+    },
+    {
+      "loop": "data/loops/loop-11.mp4",
+      "setting_correct": true,
+      "predicted_setting": "urban",
+      "true_setting": "urban",
+      "mood_overlap": 1.0,
+      "predicted_mood": [
+        "comic"
+      ],
+      "true_mood": [
+        "comic"
+      ],
+      "music_query": "Electronic synth pulses, slow motion, comedic, light and playful; Hip-Hop beat with heavy bass, slow tempo, comedic, quirky rhythm; Folk acoustic guitar, slow tempo, warm and humorous, organic texture",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": 311,
+      "relaxed_filters": [],
+      "rerank_reasoning": null,
+      "queries": [
+        "Electronic synth pulses, slow motion, comedic, light and playful",
+        "Hip-Hop beat with heavy bass, slow tempo, comedic, quirky rhythm",
+        "Folk acoustic guitar, slow tempo, warm and humorous, organic texture"
+      ],
+      "tool_calls_made": 3,
+      "fallback_used": 0
+    },
+    {
+      "loop": "data/loops/loop-12.mp4",
+      "setting_correct": false,
+      "predicted_setting": "abstract",
+      "true_setting": "nature",
+      "mood_overlap": 0.0,
+      "predicted_mood": [
+        "calm"
+      ],
+      "true_mood": [
+        "melancholic",
+        "dreamy"
+      ],
+      "music_query": "Electronic synth pads, slow tempo, ambient, serene, no vocals; Folk acoustic guitar, gentle strumming, warm, slow, no vocals; Instrumental ambient piano, soft arpeggios, drifting, meditative, no vocals",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": 21,
+      "relaxed_filters": [],
+      "rerank_reasoning": null,
+      "queries": [
+        "Electronic synth pads, slow tempo, ambient, serene, no vocals",
+        "Folk acoustic guitar, gentle strumming, warm, slow, no vocals",
+        "Instrumental ambient piano, soft arpeggios, drifting, meditative, no vocals"
+      ],
+      "tool_calls_made": 3,
+      "fallback_used": 0
+    },
+    {
+      "loop": "data/loops/loop-13.mp4",
+      "setting_correct": true,
+      "predicted_setting": "urban",
+      "true_setting": "urban",
+      "mood_overlap": 0.25,
+      "predicted_mood": [
+        "joyful",
+        "triumphant"
+      ],
+      "true_mood": [
+        "joyful",
+        "nostalgic",
+        "dreamy"
+      ],
+      "music_query": "Electronic synth-driven, fast tempo, triumphant energy, driving beat; Rock guitar riff, live drums, high energy, joyful motion, upbeat tempo; Hip-Hop beat, heavy bass, rhythmic pulse, celebratory mood, fast tempo",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": 30,
+      "relaxed_filters": [],
+      "rerank_reasoning": null,
+      "queries": [
+        "Electronic synth-driven, fast tempo, triumphant energy, driving beat",
+        "Rock guitar riff, live drums, high energy, joyful motion, upbeat tempo",
+        "Hip-Hop beat, heavy bass, rhythmic pulse, celebratory mood, fast tempo"
+      ],
+      "tool_calls_made": 3,
+      "fallback_used": 0
+    },
+    {
+      "loop": "data/loops/loop-14.mp4",
+      "setting_correct": false,
+      "predicted_setting": "nightlife",
+      "true_setting": "abstract",
+      "mood_overlap": 0.0,
+      "predicted_mood": [
+        "festive"
+      ],
+      "true_mood": [
+        "comic"
+      ],
+      "music_query": "Electronic synth pulses, driving beat, chaotic energy, night festival vibe; Rock guitars roar, live drums thunder, high-tempo chaotic party atmosphere; Hip-Hop bass thump, rhythmic loops, energetic street festival chaos",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": 202,
+      "relaxed_filters": [],
+      "rerank_reasoning": null,
+      "queries": [
+        "Electronic synth pulses, driving beat, chaotic energy, night festival vibe",
+        "Rock guitars roar, live drums thunder, high-tempo chaotic party atmosphere",
+        "Hip-Hop bass thump, rhythmic loops, energetic street festival chaos"
+      ],
+      "tool_calls_made": 3,
+      "fallback_used": 0
+    },
+    {
+      "loop": "data/loops/loop-15.mp4",
+      "setting_correct": true,
+      "predicted_setting": "urban",
+      "true_setting": "urban",
+      "mood_overlap": 0.3333333333333333,
+      "predicted_mood": [
+        "aggressive",
+        "tense"
+      ],
+      "true_mood": [
+        "comic",
+        "tense"
+      ],
+      "music_query": "Electronic drum machine beats, aggressive tempo, tense atmosphere, no vocals; Rock guitar riffs, driving energy, slow motion tension, live drums, instrumental; Hip-Hop bass-heavy beat, rhythmic pulse, urban tension, no vocals, instrumental",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": 230,
+      "relaxed_filters": [],
+      "rerank_reasoning": null,
+      "queries": [
+        "Electronic drum machine beats, aggressive tempo, tense atmosphere, no vocals",
+        "Rock guitar riffs, driving energy, slow motion tension, live drums, instrumental",
+        "Hip-Hop bass-heavy beat, rhythmic pulse, urban tension, no vocals, instrumental"
+      ],
+      "tool_calls_made": 3,
+      "fallback_used": 0
+    },
+    {
+      "loop": "data/loops/loop-16.mp4",
+      "setting_correct": true,
+      "predicted_setting": "nightlife",
+      "true_setting": "nightlife",
+      "mood_overlap": 0.25,
+      "predicted_mood": [
+        "festive",
+        "tragic"
+      ],
+      "true_mood": [
+        "tense",
+        "joyful",
+        "festive"
+      ],
+      "music_query": "Electronic synth pulses with driving rhythm, festive yet melancholic, moderate tempo; Rock guitars roar with live drums, tragic energy, moderate motion, no vocals; Hip-Hop beat with heavy bass, festive trap vibe, tragic undertone, moderate tempo",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": 563,
+      "relaxed_filters": [],
+      "rerank_reasoning": null,
+      "queries": [
+        "Electronic synth pulses with driving rhythm, festive yet melancholic, moderate tempo",
+        "Rock guitars roar with live drums, tragic energy, moderate motion, no vocals",
+        "Hip-Hop beat with heavy bass, festive trap vibe, tragic undertone, moderate tempo"
+      ],
+      "tool_calls_made": 3,
+      "fallback_used": 0
+    },
+    {
+      "loop": "data/loops/loop-17.mp4",
+      "setting_correct": true,
+      "predicted_setting": "nightlife",
+      "true_setting": "nightlife",
+      "mood_overlap": 0.0,
+      "predicted_mood": [
+        "festive",
+        "tragic"
+      ],
+      "true_mood": [
+        "joyful"
+      ],
+      "music_query": "Electronic synth pulses with driving beat, urgent and celebratory, dark festival energy; Rock guitars scream with live drums, fast tempo, chaotic yet tragic, night club frenzy; Hip-Hop bass thumps, rhythmic and heavy, mournful yet festive, urban nightlife pulse",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": 346,
+      "relaxed_filters": [],
+      "rerank_reasoning": null,
+      "queries": [
+        "Electronic synth pulses with driving beat, urgent and celebratory, dark festival energy",
+        "Rock guitars scream with live drums, fast tempo, chaotic yet tragic, night club frenzy",
+        "Hip-Hop bass thumps, rhythmic and heavy, mournful yet festive, urban nightlife pulse"
+      ],
+      "tool_calls_made": 3,
+      "fallback_used": 0
+    },
+    {
+      "loop": "data/loops/loop-18.mp4",
+      "setting_correct": true,
+      "predicted_setting": "urban",
+      "true_setting": "urban",
+      "mood_overlap": 0.3333333333333333,
+      "predicted_mood": [
+        "comic"
+      ],
+      "true_mood": [
+        "melancholic",
+        "comic",
+        "dreamy"
+      ],
+      "music_query": "Electronic synth pulses, upbeat tempo, comedic energy, no vocals; Rock guitar riff, driving beat, humorous tone, live drums; Hip-Hop beat, heavy bass, playful rhythm, no vocals",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": 219,
+      "relaxed_filters": [],
+      "rerank_reasoning": null,
+      "queries": [
+        "Electronic synth pulses, upbeat tempo, comedic energy, no vocals",
+        "Rock guitar riff, driving beat, humorous tone, live drums",
+        "Hip-Hop beat, heavy bass, playful rhythm, no vocals"
+      ],
+      "tool_calls_made": 3,
+      "fallback_used": 0
+    },
+    {
+      "loop": "data/loops/loop-19.mp4",
+      "setting_correct": true,
+      "predicted_setting": "urban",
+      "true_setting": "urban",
+      "mood_overlap": 0.3333333333333333,
+      "predicted_mood": [
+        "aggressive",
+        "tense"
+      ],
+      "true_mood": [
+        "tense",
+        "epic"
+      ],
+      "music_query": "Electronic drum machine beats, driving tempo, aggressive tension, no vocals; Rock guitar riff, live drums, urgent pace, tense atmosphere, instrumental; Hip-Hop bass-heavy beat, rhythmic pulse, gritty texture, no vocals",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": 80,
+      "relaxed_filters": [],
+      "rerank_reasoning": null,
+      "queries": [
+        "Electronic drum machine beats, driving tempo, aggressive tension, no vocals",
+        "Rock guitar riff, live drums, urgent pace, tense atmosphere, instrumental",
+        "Hip-Hop bass-heavy beat, rhythmic pulse, gritty texture, no vocals"
+      ],
+      "tool_calls_made": 3,
+      "fallback_used": 0
+    },
+    {
+      "loop": "data/loops/loop-20.mp4",
+      "setting_correct": false,
+      "predicted_setting": "domestic",
+      "true_setting": "sports",
+      "mood_overlap": 0.5,
+      "predicted_mood": [
+        "joyful",
+        "triumphant"
+      ],
+      "true_mood": [
+        "joyful"
+      ],
+      "music_query": "Electronic synth pulses with driving rhythm, joyful and triumphant, moderate tempo; Rock guitar riff with live drums, energetic and celebratory, moderate tempo; Hip-Hop beat with heavy bass, rhythmic and triumphant, moderate tempo",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": 259,
+      "relaxed_filters": [],
+      "rerank_reasoning": null,
+      "queries": [
+        "Electronic synth pulses with driving rhythm, joyful and triumphant, moderate tempo",
+        "Rock guitar riff with live drums, energetic and celebratory, moderate tempo",
+        "Hip-Hop beat with heavy bass, rhythmic and triumphant, moderate tempo"
+      ],
+      "tool_calls_made": 3,
+      "fallback_used": 0
+    },
+    {
+      "loop": "data/loops/loop-21.mp4",
+      "setting_correct": false,
+      "predicted_setting": "performance",
+      "true_setting": "domestic",
+      "mood_overlap": 0.0,
+      "predicted_mood": [
+        "tragic"
+      ],
+      "true_mood": [
+        "comic"
+      ],
+      "music_query": "slow, melancholic, instrumental, acoustic guitar, strings, minimal percussion; dark, atmospheric, electronic, synth pads, low bass, driving but somber tempo; folk, warm, mournful, fingerpicked guitar, soft percussion, no vocals",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": null,
+      "relaxed_filters": [],
+      "rerank_reasoning": null,
+      "queries": [
+        "slow, melancholic, instrumental, acoustic guitar, strings, minimal percussion",
+        "dark, atmospheric, electronic, synth pads, low bass, driving but somber tempo",
+        "folk, warm, mournful, fingerpicked guitar, soft percussion, no vocals"
+      ],
+      "tool_calls_made": 3,
+      "fallback_used": 0
+    },
+    {
+      "loop": "data/loops/loop-22.mp4",
+      "setting_correct": false,
+      "predicted_setting": "urban",
+      "true_setting": "scifi_fantasy",
+      "mood_overlap": 0.0,
+      "predicted_mood": [
+        "tragic",
+        "nostalgic"
+      ],
+      "true_mood": [
+        "melancholic",
+        "epic"
+      ],
+      "music_query": "dark, melancholic, slow tempo, atmospheric synth and piano, urban decay vibe; gentle acoustic guitar, warm strings, slow, nostalgic, urban street ambiance; drum machine pulse, heavy bass, minimal beat, tragic mood, urban silence",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": 61,
+      "relaxed_filters": [],
+      "rerank_reasoning": null,
+      "queries": [
+        "dark, melancholic, slow tempo, atmospheric synth and piano, urban decay vibe",
+        "gentle acoustic guitar, warm strings, slow, nostalgic, urban street ambiance",
+        "drum machine pulse, heavy bass, minimal beat, tragic mood, urban silence"
+      ],
+      "tool_calls_made": 3,
+      "fallback_used": 0
+    },
+    {
+      "loop": "data/loops/loop-23.mp4",
+      "setting_correct": true,
+      "predicted_setting": "sports",
+      "true_setting": "sports",
+      "mood_overlap": 0.25,
+      "predicted_mood": [
+        "epic",
+        "festive"
+      ],
+      "true_mood": [
+        "epic",
+        "triumphant",
+        "tense"
+      ],
+      "music_query": "Electronic synth pulses with driving rhythm, festive energy, moderate tempo; Rock guitars roar with live drums, epic motion, celebratory mood; Hip-Hop beat thumps heavy bass, festive rhythm, moderate pace",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": 205,
+      "relaxed_filters": [],
+      "rerank_reasoning": null,
+      "queries": [
+        "Electronic synth pulses with driving rhythm, festive energy, moderate tempo",
+        "Rock guitars roar with live drums, epic motion, celebratory mood",
+        "Hip-Hop beat thumps heavy bass, festive rhythm, moderate pace"
+      ],
+      "tool_calls_made": 3,
+      "fallback_used": 0
+    },
+    {
+      "loop": "data/loops/loop-24.mp4",
+      "setting_correct": true,
+      "predicted_setting": "domestic",
+      "true_setting": "domestic",
+      "mood_overlap": 0.0,
+      "predicted_mood": [
+        "comic",
+        "aggressive"
+      ],
+      "true_mood": [
+        "joyful",
+        "triumphant"
+      ],
+      "music_query": "aggressive comedic beat with heavy bass and rhythmic hip-hop loops; fast-paced electronic synth pulse with driving drum machines and comedic energy; warm folk guitar with playful strings and light comedic tempo",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": 193,
+      "relaxed_filters": [],
+      "rerank_reasoning": null,
+      "queries": [
+        "aggressive comedic beat with heavy bass and rhythmic hip-hop loops",
+        "fast-paced electronic synth pulse with driving drum machines and comedic energy",
+        "warm folk guitar with playful strings and light comedic tempo"
+      ],
+      "tool_calls_made": 3,
+      "fallback_used": 0
+    },
+    {
+      "loop": "data/loops/loop-25.mp4",
+      "setting_correct": true,
+      "predicted_setting": "sports",
+      "true_setting": "sports",
+      "mood_overlap": 0.0,
+      "predicted_mood": [
+        "aggressive",
+        "festive"
+      ],
+      "true_mood": [
+        "tense",
+        "epic",
+        "comic"
+      ],
+      "music_query": "Electronic synth-driven beat, fast tempo, aggressive energy, festival vibe; Rock guitar riff, driving drums, high tempo, celebratory intensity; Hip-Hop bass-heavy beat, rhythmic punch, festive excitement, no vocals",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": 503,
+      "relaxed_filters": [],
+      "rerank_reasoning": null,
+      "queries": [
+        "Electronic synth-driven beat, fast tempo, aggressive energy, festival vibe",
+        "Rock guitar riff, driving drums, high tempo, celebratory intensity",
+        "Hip-Hop bass-heavy beat, rhythmic punch, festive excitement, no vocals"
+      ],
+      "tool_calls_made": 3,
+      "fallback_used": 0
+    },
+    {
+      "loop": "data/loops/loop-26.mp4",
+      "setting_correct": false,
+      "predicted_setting": "performance",
+      "true_setting": "scifi_fantasy",
+      "mood_overlap": 0.0,
+      "predicted_mood": [
+        "festive",
+        "tragic"
+      ],
+      "true_mood": [
+        "tense"
+      ],
+      "music_query": "Electronic synth pulses with slow, mournful rhythm, festive undertones; Rock guitar riff drives slow, tragic energy with live drum intensity; Hip-Hop beat with heavy bass, slow motion, festive yet somber atmosphere",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": 70,
+      "relaxed_filters": [],
+      "rerank_reasoning": null,
+      "queries": [
+        "Electronic synth pulses with slow, mournful rhythm, festive undertones",
+        "Rock guitar riff drives slow, tragic energy with live drum intensity",
+        "Hip-Hop beat with heavy bass, slow motion, festive yet somber atmosphere"
+      ],
+      "tool_calls_made": 3,
+      "fallback_used": 0
+    },
+    {
+      "loop": "data/loops/loop-27.mp4",
+      "setting_correct": false,
+      "predicted_setting": "abstract",
+      "true_setting": "urban",
+      "mood_overlap": 0.0,
+      "predicted_mood": [
+        "tragic"
+      ],
+      "true_mood": [
+        "epic"
+      ],
+      "music_query": "Electronic synth pulses with slow, tragic decay, driving tempo; Rock guitar riff with heavy drums, fast motion, mournful tone; Hip-Hop beat with deep bass, fast rhythm, somber atmosphere",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": 39,
+      "relaxed_filters": [],
+      "rerank_reasoning": null,
+      "queries": [
+        "Electronic synth pulses with slow, tragic decay, driving tempo",
+        "Rock guitar riff with heavy drums, fast motion, mournful tone",
+        "Hip-Hop beat with deep bass, fast rhythm, somber atmosphere"
+      ],
+      "tool_calls_made": 3,
+      "fallback_used": 0
+    },
+    {
+      "loop": "data/loops/loop-28.mp4",
+      "setting_correct": false,
+      "predicted_setting": "combat",
+      "true_setting": "abstract",
+      "mood_overlap": 0.25,
+      "predicted_mood": [
+        "aggressive",
+        "dreamy"
+      ],
+      "true_mood": [
+        "nostalgic",
+        "epic",
+        "dreamy"
+      ],
+      "music_query": "aggressive electronic beats with dreamy synth layers and moderate tempo; rock guitar riffs with driving energy and dreamy atmosphere; hip-hop bass-heavy beats with abstract sound design and motion-like rhythm",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": 393,
+      "relaxed_filters": [],
+      "rerank_reasoning": null,
+      "queries": [
+        "aggressive electronic beats with dreamy synth layers and moderate tempo",
+        "rock guitar riffs with driving energy and dreamy atmosphere",
+        "hip-hop bass-heavy beats with abstract sound design and motion-like rhythm"
+      ],
+      "tool_calls_made": 3,
+      "fallback_used": 0
+    },
+    {
+      "loop": "data/loops/loop-29.mp4",
+      "setting_correct": false,
+      "predicted_setting": "nightlife",
+      "true_setting": "performance",
+      "mood_overlap": 0.6666666666666666,
+      "predicted_mood": [
+        "festive",
+        "comic"
+      ],
+      "true_mood": [
+        "joyful",
+        "comic",
+        "festive"
+      ],
+      "music_query": "Electronic synth pulses, driving beat, upbeat festival energy, moderate tempo; Rock guitar riff, live drums, high-energy party vibe, moderate motion; Hip-Hop bass thump, rhythmic snare, comic festival bounce, no vocals",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": 405,
+      "relaxed_filters": [],
+      "rerank_reasoning": null,
+      "queries": [
+        "Electronic synth pulses, driving beat, upbeat festival energy, moderate tempo",
+        "Rock guitar riff, live drums, high-energy party vibe, moderate motion",
+        "Hip-Hop bass thump, rhythmic snare, comic festival bounce, no vocals"
+      ],
+      "tool_calls_made": 3,
+      "fallback_used": 0
+    },
+    {
+      "loop": "data/loops/loop-30.mp4",
+      "setting_correct": false,
+      "predicted_setting": "horror",
+      "true_setting": "urban",
+      "mood_overlap": 0.3333333333333333,
+      "predicted_mood": [
+        "tragic",
+        "festive"
+      ],
+      "true_mood": [
+        "joyful",
+        "festive"
+      ],
+      "music_query": "slow tragic electronic synth pads with haunting ambient textures; folk acoustic guitar with mournful strings and slow tempo; hip-hop beat with deep bass and eerie rhythmic pulse",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": 665,
+      "relaxed_filters": [],
+      "rerank_reasoning": null,
+      "queries": [
+        "slow tragic electronic synth pads with haunting ambient textures",
+        "folk acoustic guitar with mournful strings and slow tempo",
+        "hip-hop beat with deep bass and eerie rhythmic pulse"
+      ],
+      "tool_calls_made": 3,
+      "fallback_used": 0
+    }
+  ],
+  "aggregates": {
+    "setting_accuracy": 0.5666666666666667,
+    "mean_mood_overlap": 0.25,
+    "hit_at_1_rate": 0.0,
+    "hit_at_5_rate": 0.0,
+    "mean_best_rank": 254.89285714285714,
+    "not_found_count": 2,
+    "mean_penalized_rank": 271.23333333333335,
+    "loops_needing_relaxation": 0,
+    "agent_tool_calls_total": 90,
+    "agent_fallback_used_total": 0
+  }
+}

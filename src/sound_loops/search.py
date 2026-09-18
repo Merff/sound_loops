@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import shutil
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -80,13 +81,16 @@ def search_tracks(
 
 
 def _hybrid_where(
-    level: FilterLevel, min_duration_seconds: float | None
+    level: FilterLevel, min_duration_seconds: float | None, exclude_ids: Sequence[int] | None = None
 ) -> tuple[str, list]:
     clauses = ["embedding IS NOT NULL"]
     params: list = []
     if min_duration_seconds is not None:
         clauses.append("duration_seconds >= %s")
         params.append(min_duration_seconds)
+    if exclude_ids:
+        clauses.append("id != ALL(%s)")
+        params.append(list(exclude_ids))
     if level.tempo_range is not None:
         clauses.append("tempo_bpm BETWEEN %s AND %s")
         params += [level.tempo_range[0], level.tempo_range[1]]
@@ -147,6 +151,41 @@ def search_tracks_hybrid(
         raise SearchError("в базе нет проиндексированных треков — сначала запустите index")
 
     return results, relaxed
+
+
+def search_tracks_filtered(
+    conn: psycopg.Connection,
+    embedder: Embedder,
+    query: str,
+    top_n: int,
+    min_duration_seconds: float | None = None,
+    tempo_range: TempoRange | None = None,
+    vocals: Vocals | None = None,
+    exclude_ids: Sequence[int] | None = None,
+) -> list[SearchResult]:
+    """Один SQL-запрос с необязательными фильтрами по темпу/вокалу — без
+    лестницы послаблений search_tracks_hybrid. Используется инструментом
+    поиска узла plan (agent_planner.py, итерация 5): там послабления не
+    нужны — если фильтры дали пусто, это решает сам агент следующим
+    вызовом инструмента, а не код автоматически. exclude_ids — треки,
+    уже показанные в предыдущих кругах обратной связи (см. agent_graph.py).
+    """
+    register_vector(conn)
+    vector = normalize(embedder.embed_texts([query]))[0]
+
+    level = FilterLevel(tempo_range, vocals, None)
+    where_sql, filter_params = _hybrid_where(level, min_duration_seconds, exclude_ids)
+    rows = conn.execute(
+        f"""
+        SELECT id, path, title, artist, genre, 1 - (embedding <=> %s) AS similarity, tempo_bpm, tags
+        FROM tracks
+        WHERE {where_sql}
+        ORDER BY embedding <=> %s
+        LIMIT %s
+        """,
+        [vector, *filter_params, vector, top_n],
+    ).fetchall()
+    return [SearchResult(*row) for row in rows]
 
 
 def export_results(results: list[SearchResult], export_dir: Path) -> list[Path]:

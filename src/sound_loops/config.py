@@ -62,6 +62,23 @@ class Settings(BaseSettings):
     tempo_sample_rate: int = 22050
     tempo_max_seconds: float = 60.0
 
+    # Агент (итерация 5): узел plan вызывает инструмент поиска сам, пока не
+    # соберёт agent_slot_count разных треков или не упрётся в потолок
+    # ходов модели (agent_max_plan_iterations) — после него включается
+    # резервный путь (см. agent_planner.py). agent_max_rounds — предел
+    # кругов обратной связи, обязателен (см. docs/sound_loops-iteration-5.md).
+    agent_slot_count: int = 3
+    agent_max_plan_iterations: int = 6
+    agent_max_rounds: int = 3
+    # Пол для top_n инструмента поиска (agent_planner.py) — независимо от
+    # того, что запросила модель. Не связан с RERANK_POOL_SIZE (тот
+    # обрезает пул ПЕРЕД показом модели-переранжировщику, здесь же просто
+    # запас кандидатов для дедупа между слотами). eval-run временно
+    # подменяет это значение на eval_search_depth (см. eval_run.py) —
+    # иначе hit@k агента считался бы по пулу в разы меньше, чем у
+    # остальных конфигураций, и был бы с ними несравним.
+    agent_search_pool_size: int = 25
+
     @field_validator("fade_seconds")
     @classmethod
     def _must_be_positive(cls, v: float) -> float:

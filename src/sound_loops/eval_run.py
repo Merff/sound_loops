@@ -26,6 +26,7 @@ from pathlib import Path
 import psycopg
 from pydantic import BaseModel
 
+from sound_loops.agent_graph import build_eval_graph, initial_state
 from sound_loops.analysis import analyze_loop
 from sound_loops.config import Settings
 from sound_loops.embeddings import Embedder
@@ -37,7 +38,7 @@ from sound_loops.motion import estimate_motion
 from sound_loops.render import get_loop_by_path
 from sound_loops.rerank import RERANK_POOL_SIZE, rerank_candidates
 from sound_loops.search import search_tracks, search_tracks_hybrid
-from sound_loops.vlm import Motion, SceneAnalyzer
+from sound_loops.vlm import Motion, SceneAnalyzer, SceneDescription
 
 
 class LoopEvalResult(BaseModel):
@@ -54,6 +55,11 @@ class LoopEvalResult(BaseModel):
     best_rank: int | None
     relaxed_filters: list[str] = []
     rerank_reasoning: str | None = None
+    # Только для use_agent=True (итерация 5): queries — 3 запроса узла plan,
+    # tool_calls_made/fallback_used — надёжность вызова инструмента на этом лупе.
+    queries: list[str] = []
+    tool_calls_made: int = 0
+    fallback_used: int = 0
 
 
 class EvalAggregates(BaseModel):
@@ -74,6 +80,11 @@ class EvalAggregates(BaseModel):
     # при use_filters=True) — частые послабления значат, что диапазоны
     # заданы неверно или библиотека слишком мала, а не что код не работает.
     loops_needing_relaxation: int = 0
+    # Только при use_agent=True: сколько раз узел plan вызвал инструмент
+    # сам и сколько раз сработал резервный путь — суммарно по всем лупам,
+    # честная характеристика надёжности tool calling на локальной 4B-модели.
+    agent_tool_calls_total: int = 0
+    agent_fallback_used_total: int = 0
 
 
 class EvalRun(BaseModel):
@@ -85,6 +96,7 @@ class EvalRun(BaseModel):
     search_depth: int
     use_filters: bool = False
     use_rerank: bool = False
+    use_agent: bool = False
     loops: list[LoopEvalResult]
     aggregates: EvalAggregates
 
@@ -94,8 +106,11 @@ class EvalRun(BaseModel):
             f"Модель: {self.model}  промпт: {self.prompt_version}  "
             f"температура: {self.temperature}  коммит: {self.commit}"
         )
-        print(f"Конфигурация: фильтры={'да' if self.use_filters else 'нет'}  "
-              f"переранжирование={'да' if self.use_rerank else 'нет'}")
+        if self.use_agent:
+            print("Конфигурация: агент (узел plan вызывает поиск сам, hit@k по объединению 3 query)")
+        else:
+            print(f"Конфигурация: фильтры={'да' if self.use_filters else 'нет'}  "
+                  f"переранжирование={'да' if self.use_rerank else 'нет'}")
         print(f"Лупов: {len(self.loops)}")
         print(f"setting accuracy:    {a.setting_accuracy:.2f}")
         print(f"mood overlap (mean): {a.mean_mood_overlap:.2f}")
@@ -114,6 +129,13 @@ class EvalRun(BaseModel):
         )
         if self.use_filters:
             print(f"лупов с послаблением фильтров: {a.loops_needing_relaxation}/{len(self.loops)}")
+        if self.use_agent:
+            total_calls = a.agent_tool_calls_total + a.agent_fallback_used_total
+            fallback_share = a.agent_fallback_used_total / total_calls if total_calls else 0.0
+            print(
+                f"вызовов инструмента моделью: {a.agent_tool_calls_total}  "
+                f"резервных: {a.agent_fallback_used_total}  (доля резервных: {fallback_share:.0%})"
+            )
         if self.use_rerank:
             print("\nОбъяснения переранжирования:")
             for r in self.loops:
@@ -197,6 +219,49 @@ def _evaluate_loop(
     )
 
 
+def _merge_agent_pools(plan_pools: list[dict]) -> list[str]:
+    """Объединить кандидатов всех slot'ов агента в один ранжированный список
+    путей — дедуп по треку (побеждает лучшая позиция), сортировка по
+    сходству. Основа для hit@k агента: трек считается найденным, если он
+    попал в top-k хотя бы одного из 3 query (см. docs/sound_loops-iteration-5.md,
+    раздел «Эвалы» — решение сравнить конфигурации по объединению, а не по
+    первому query или трём метрикам по отдельности)."""
+    best: dict[int, tuple[float, str]] = {}
+    for pool_info in plan_pools:
+        for candidate in pool_info["candidates"]:
+            track_id, similarity, path = candidate["id"], candidate["similarity"], candidate["path"]
+            if track_id not in best or similarity > best[track_id][0]:
+                best[track_id] = (similarity, path)
+    return [path for _similarity, path in sorted(best.values(), key=lambda pair: pair[0], reverse=True)]
+
+
+def _evaluate_loop_agent(graph, settings: Settings, entry: LoopAnnotation) -> LoopEvalResult:
+    """Первый проход графа-агента (analyze -> plan -> rerank, см.
+    agent_graph.py::build_eval_graph) — не дублирует его логику, как и
+    _evaluate_loop не дублирует match_once."""
+    state = graph.invoke(initial_state(entry.loop, settings))
+    scene = SceneDescription.model_validate(state["scene"])
+    queries = [pool["query"] for pool in state["plan_pools"]]
+    ranked_paths = _merge_agent_pools(state["plan_pools"])
+
+    return LoopEvalResult(
+        loop=entry.loop,
+        setting_correct=scene.setting == entry.setting,
+        predicted_setting=scene.setting,
+        true_setting=entry.setting,
+        mood_overlap=mood_overlap(scene.mood, entry.mood),
+        predicted_mood=list(scene.mood),
+        true_mood=list(entry.mood),
+        music_query="; ".join(queries),
+        queries=queries,
+        hit_at_1=hit_at_k(ranked_paths, entry.good_tracks, 1),
+        hit_at_5=hit_at_k(ranked_paths, entry.good_tracks, 5),
+        best_rank=best_rank(ranked_paths, entry.good_tracks),
+        tool_calls_made=state["tool_calls_total"],
+        fallback_used=state["fallback_used_total"],
+    )
+
+
 def _aggregate(loops: list[LoopEvalResult], search_depth: int) -> EvalAggregates:
     n = len(loops)
     ranks = [r.best_rank for r in loops if r.best_rank is not None]
@@ -209,6 +274,8 @@ def _aggregate(loops: list[LoopEvalResult], search_depth: int) -> EvalAggregates
         not_found_count=n - len(ranks),
         mean_penalized_rank=sum(penalized_rank(r.best_rank, search_depth) for r in loops) / n,
         loops_needing_relaxation=sum(1 for r in loops if r.relaxed_filters) if n else 0,
+        agent_tool_calls_total=sum(r.tool_calls_made for r in loops),
+        agent_fallback_used_total=sum(r.fallback_used for r in loops),
     )
 
 
@@ -221,17 +288,27 @@ def run_eval(
     temperature: float,
     use_filters: bool = False,
     use_rerank: bool = False,
+    use_agent: bool = False,
 ) -> EvalRun:
     if not dataset:
         raise ValueError("набор разметки пуст — нечего прогонять")
 
-    loops = [
-        _evaluate_loop(conn, analyzer, embedder, settings, entry, use_filters, use_rerank) for entry in dataset
-    ]
+    if use_agent:
+        # Пул поиска инструмента шире, чем в продакшене (settings.agent_search_pool_size,
+        # см. config.py) — иначе hit@k агента считался бы по пулу в разы
+        # меньше topN остальных конфигураций и был бы с ними несравним.
+        eval_settings = settings.model_copy(update={"agent_search_pool_size": settings.eval_search_depth})
+        graph = build_eval_graph(conn, embedder, analyzer, eval_settings)
+        loops = [_evaluate_loop_agent(graph, eval_settings, entry) for entry in dataset]
+    else:
+        loops = [
+            _evaluate_loop(conn, analyzer, embedder, settings, entry, use_filters, use_rerank) for entry in dataset
+        ]
     return EvalRun(
         timestamp=datetime.now(UTC).isoformat(),
         use_filters=use_filters,
         use_rerank=use_rerank,
+        use_agent=use_agent,
         commit=git_commit(),
         model=analyzer.model_id,
         prompt_version=analyzer.prompt_version,

@@ -105,15 +105,21 @@ def get_random_track(conn: psycopg.Connection, min_duration_seconds: float) -> T
     return TrackRow(*row)
 
 
-def render_once(
+def render_preview(
     conn: psycopg.Connection,
     settings: Settings,
-    loop_path: Path | None = None,
+    loop: LoopRow,
+    track_id: int,
+    track_path: str,
+    track_duration_seconds: float,
+    analysis_id: int | None = None,
+    music_query: str | None = None,
 ) -> Path:
-    """Собрать одно превью: луп + случайный отрезок трека под его длительность."""
-    loop = get_loop_by_path(conn, loop_path, settings) if loop_path else get_random_loop(conn)
-    track = get_random_track(conn, loop.duration_seconds)
-    start_seconds = pick_random_start(track.duration_seconds, loop.duration_seconds)
+    """Вырезать случайный отрезок трека под длительность лупа, склеить с
+    видео и записать renders. Общий хвост render_once/match_once/агентного
+    узла render (итерация 5) — каждый по-своему выбирает трек, дальше всё
+    одинаково. analysis_id/music_query — NULL для случайного baseline'а."""
+    start_seconds = pick_random_start(track_duration_seconds, loop.duration_seconds)
 
     settings.output_dir.mkdir(parents=True, exist_ok=True)
     output_name = f"{Path(loop.path).stem}_{uuid.uuid4().hex[:8]}.mp4"
@@ -123,7 +129,7 @@ def render_once(
         tmp_audio_path = Path(tmp.name)
     try:
         extract_audio_segment(
-            track_path=Path(track.path),
+            track_path=Path(track_path),
             start_seconds=start_seconds,
             duration_seconds=loop.duration_seconds,
             fade_seconds=settings.fade_seconds,
@@ -135,11 +141,23 @@ def render_once(
 
     conn.execute(
         """
-        INSERT INTO renders (loop_id, track_id, start_seconds, output_path, duration_seconds)
-        VALUES (%s, %s, %s, %s, %s)
+        INSERT INTO renders
+            (loop_id, track_id, start_seconds, output_path, duration_seconds, analysis_id, music_query)
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
         """,
-        (loop.id, track.id, start_seconds, str(output_path), loop.duration_seconds),
+        (loop.id, track_id, start_seconds, str(output_path), loop.duration_seconds, analysis_id, music_query),
     )
     conn.commit()
 
     return output_path
+
+
+def render_once(
+    conn: psycopg.Connection,
+    settings: Settings,
+    loop_path: Path | None = None,
+) -> Path:
+    """Собрать одно превью: луп + случайный отрезок трека под его длительность."""
+    loop = get_loop_by_path(conn, loop_path, settings) if loop_path else get_random_loop(conn)
+    track = get_random_track(conn, loop.duration_seconds)
+    return render_preview(conn, settings, loop, track.id, track.path, track.duration_seconds)

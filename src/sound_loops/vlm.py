@@ -17,9 +17,11 @@ import base64
 from collections.abc import Sequence
 from typing import Literal, Protocol
 
+from langchain_core.language_models import LanguageModelInput
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.runnables import RunnableLambda
+from langchain_core.runnables import Runnable, RunnableLambda
+from langchain_core.tools import BaseTool
 from langchain_ollama import ChatOllama
 from pydantic import BaseModel, Field, field_validator
 
@@ -143,6 +145,11 @@ class SceneAnalyzer(Protocol):
     def rerank(self, scene: SceneDescription, candidate_descriptions: Sequence[str]) -> RerankChoice:
         """Описание сцены + пронумерованные читаемые описания кандидатов -> выбор + объяснение."""
 
+    def bind_tools(self, tools: Sequence[BaseTool]) -> Runnable[LanguageModelInput, object]:
+        """Та же модель с привязанными инструментами (узел plan, итерация 5) —
+        единственный способ достать вызываемую модель наружу, чтобы вызывающий
+        код (agent_planner.py) не был завязан на ChatOllama напрямую."""
+
 
 _SCENE_SYSTEM_PROMPT = (
     "You are looking at frames from a short silent video loop, sampled in "
@@ -180,8 +187,10 @@ _SCENE_INSTRUCTION = (
 # без этого шаг B тянется к orchestral/cinematic, которых в библиотеке нет.
 # Библиотека сбалансирована точно (по 100 треков на жанр, см. README) —
 # короткие описания ниже призваны отучить модель от дефолта на electronic
-# и дать за что зацепиться помимо самого названия жанра.
-_LIBRARY_GENRES_WITH_CHARACTER = (
+# и дать за что зацепиться помимо самого названия жанра. Не приватная —
+# переиспользуется agent_planner.py (узел plan, итерация 5) для того же
+# промпта про жанры библиотеки.
+LIBRARY_GENRES_WITH_CHARACTER = (
     "Electronic (synths, drum machines, digital production), "
     "Rock (electric guitars, live drums, driving energy), "
     "Hip-Hop (rhythmic beat, heavy bass, sampled loops), "
@@ -199,7 +208,7 @@ _MUSIC_SYSTEM_PROMPT = (
     "(vocals go in a separate field).\n\n"
     f"The music library only has these genres, evenly represented (about "
     f"100 tracks each) — pick whichever ACTUALLY fits the mood: "
-    f"{_LIBRARY_GENRES_WITH_CHARACTER}. Never say orchestral, cinematic, "
+    f"{LIBRARY_GENRES_WITH_CHARACTER}. Never say orchestral, cinematic, "
     "soundtrack, or symphonic — those don't exist here.\n\n"
     "Electronic is not a safe default — it's one option among eight, no "
     "more statistically likely than any other. Before answering, actively "
@@ -290,6 +299,7 @@ class OllamaSceneAnalyzer:
         self.model_id = model
         chat_kwargs = {} if temperature is None else {"temperature": temperature}
         chat = ChatOllama(model=model, base_url=base_url, num_ctx=context_length, **chat_kwargs)
+        self._chat = chat
 
         self._scene_chain = (
             RunnableLambda(_scene_messages) | chat.with_structured_output(SceneObservation)
@@ -322,3 +332,10 @@ class OllamaSceneAnalyzer:
                 "candidates": "\n".join(candidate_descriptions),
             }
         )
+
+    def bind_tools(self, tools: Sequence[BaseTool]) -> Runnable[LanguageModelInput, object]:
+        # .with_retry() — тот же принцип, что у остальных цепочек в этом классе:
+        # Ollama иногда роняет вызов с tool calling ошибкой разбора ответа
+        # (invalid character ... after object key:value pair, status code -1) —
+        # транзиентная проблема стрима/клиента, не логическая ошибка промпта.
+        return self._chat.bind_tools(tools).with_retry(stop_after_attempt=2)

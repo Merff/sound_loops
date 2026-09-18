@@ -25,11 +25,19 @@ def cli(verbose: bool) -> None:
 
 @cli.command("init-db")
 def init_db_cmd() -> None:
-    """Создать базу (если её ещё нет) и применить схему. Идемпотентно."""
+    """Создать базу (если её ещё нет), применить схему и завести таблицы
+    Postgres-чекпойнтера LangGraph (итерация 5) — отдельно от yoyo-схемы,
+    т.к. это инфраструктура LangGraph, не доменная модель проекта."""
     settings = load_settings()
     ensure_database_exists(settings.database_url)
     init_schema(settings.database_url)
-    click.echo("База и схема готовы.")
+
+    from langgraph.checkpoint.postgres import PostgresSaver
+
+    with PostgresSaver.from_conn_string(settings.database_url) as checkpointer:
+        checkpointer.setup()
+
+    click.echo("База, схема и чекпойнтер агента готовы.")
 
 
 @cli.command("ingest")
@@ -218,8 +226,16 @@ def match_cmd(loop_path: Path | None, filters: bool, rerank: bool) -> None:
     "--filters/--no-filters", default=False, help="Гибридный поиск: фильтры по темпу/вокалу (нужен tag-tracks)."
 )
 @click.option("--rerank/--no-rerank", default=False, help="Переранжирование топ-кандидатов моделью.")
-def eval_run_cmd(loop_filter: str | None, filters: bool, rerank: bool) -> None:
+@click.option(
+    "--agent/--no-agent", default=False,
+    help="Первый проход графа-агента (итерация 5): поиск как инструмент, hit@k по объединению 3 query. "
+    "Несовместимо с --filters/--rerank — агент фильтрует и переранжирует сам.",
+)
+def eval_run_cmd(loop_filter: str | None, filters: bool, rerank: bool, agent: bool) -> None:
     """Прогнать пайплайн по evals/dataset.json, посчитать метрики и сохранить прогон."""
+    if agent and (filters or rerank):
+        raise click.ClickException("--agent несовместим с --filters/--rerank — агент сам решает то и другое")
+
     settings = load_settings()
 
     from sound_loops.eval_dataset import load_dataset
@@ -247,7 +263,8 @@ def eval_run_cmd(loop_filter: str | None, filters: bool, rerank: bool) -> None:
 
     with connect(settings.database_url) as conn:
         run = run_eval(
-            conn, analyzer, embedder, settings, dataset, temperature=0.0, use_filters=filters, use_rerank=rerank
+            conn, analyzer, embedder, settings, dataset,
+            temperature=0.0, use_filters=filters, use_rerank=rerank, use_agent=agent,
         )
 
     run.print_summary()
@@ -337,6 +354,16 @@ def clear_analyses_cmd() -> None:
     with connect(settings.database_url) as conn:
         report = clear_analyses(conn)
     report.print_summary()
+
+
+@cli.command("ui")
+def ui_cmd() -> None:
+    """Запустить веб-интерфейс агента (Gradio): загрузка -> 3 превью -> обратная связь."""
+    settings = load_settings()
+
+    from sound_loops.ui import build_app
+
+    build_app(settings).launch()
 
 
 @cli.command("clap-check")

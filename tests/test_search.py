@@ -5,7 +5,14 @@ import numpy as np
 import pytest
 from pgvector.psycopg import register_vector
 
-from sound_loops.search import SearchError, SearchResult, export_results, search_tracks, search_tracks_hybrid
+from sound_loops.search import (
+    SearchError,
+    SearchResult,
+    export_results,
+    search_tracks,
+    search_tracks_filtered,
+    search_tracks_hybrid,
+)
 
 
 class FixedTextEmbedder:
@@ -172,6 +179,48 @@ def test_search_tracks_hybrid_raises_when_catalog_empty(db_conn):
         search_tracks_hybrid(
             db_conn, FixedTextEmbedder(_basis(0)), "query", tempo_range=(90.0, 110.0), vocals="instrumental", top_n=10
         )
+
+
+def test_search_tracks_filtered_without_constraints_matches_plain_search(db_conn):
+    query = _basis(0)
+    _insert_track_with_embedding(db_conn, "a.mp3", query)
+
+    results = search_tracks_filtered(db_conn, FixedTextEmbedder(query), "query", top_n=10)
+
+    assert [r.path for r in results] == ["a.mp3"]
+
+
+def test_search_tracks_filtered_applies_tempo_range_without_relaxation(db_conn):
+    query = _basis(0)
+    _insert_track_with_attrs(db_conn, "in_range.mp3", query, 100.0, {"instrumental": 0.9, "with_vocals": 0.1})
+    _insert_track_with_attrs(db_conn, "out_of_range.mp3", query, 300.0, {"instrumental": 0.9, "with_vocals": 0.1})
+
+    results = search_tracks_filtered(db_conn, FixedTextEmbedder(query), "query", top_n=10, tempo_range=(90.0, 110.0))
+
+    assert [r.path for r in results] == ["in_range.mp3"]
+
+
+def test_search_tracks_filtered_no_relaxation_on_empty_result(db_conn):
+    """В отличие от search_tracks_hybrid, тут нет лестницы послаблений —
+    слишком строгий фильтр просто возвращает пусто, агент сам решает,
+    ослаблять ли параметры следующим вызовом инструмента."""
+    query = _basis(0)
+    _insert_track_with_attrs(db_conn, "out_of_range.mp3", query, 300.0, {"instrumental": 0.9, "with_vocals": 0.1})
+
+    results = search_tracks_filtered(db_conn, FixedTextEmbedder(query), "query", top_n=10, tempo_range=(90.0, 110.0))
+
+    assert results == []
+
+
+def test_search_tracks_filtered_excludes_given_ids(db_conn):
+    query = _basis(0)
+    _insert_track_with_embedding(db_conn, "excluded.mp3", query)
+    _insert_track_with_embedding(db_conn, "kept.mp3", query)
+    excluded_id = db_conn.execute("SELECT id FROM tracks WHERE path = 'excluded.mp3'").fetchone()[0]
+
+    results = search_tracks_filtered(db_conn, FixedTextEmbedder(query), "query", top_n=10, exclude_ids=[excluded_id])
+
+    assert [r.path for r in results] == ["kept.mp3"]
 
 
 def test_export_results_copies_files_with_rank_prefix(tmp_path: Path):
