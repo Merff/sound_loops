@@ -55,6 +55,7 @@ class AgentState(TypedDict, total=False):
     render_ids: list[int]  # id строк renders этого круга — для оценки (rating) в UI
 
     query_log: Annotated[list[dict], operator.add]  # вся история кругов — для UI и для prompt'а plan
+    all_render_ids: Annotated[list[int], operator.add]  # render_ids всех кругов сессии — для очистки при завершении
     rejected_track_ids: Annotated[list[int], operator.add]  # id треков, уже показанных в прошлых кругах
     feedback_history: Annotated[list[str], operator.add]
     tool_calls_total: Annotated[int, operator.add]
@@ -71,6 +72,7 @@ def initial_state(loop_path: str, settings: Settings) -> AgentState:
         feedback_history=[],
         rejected_track_ids=[],
         query_log=[],
+        all_render_ids=[],
         tool_calls_total=0,
         fallback_used_total=0,
         last_feedback="",
@@ -200,6 +202,7 @@ def _make_render_node(conn: psycopg.Connection, settings: Settings):
         return {
             "output_paths": output_paths,
             "render_ids": render_ids,
+            "all_render_ids": render_ids,
             "query_log": query_log_entries,
             "rejected_track_ids": [c["id"] for c in state["candidates"]],
         }

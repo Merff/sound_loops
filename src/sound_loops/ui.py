@@ -24,6 +24,7 @@ from langgraph.types import Command
 from sound_loops.agent_graph import build_agent_graph, initial_state
 from sound_loops.config import Settings, load_settings
 from sound_loops.hf_cache import ensure_offline_if_cached
+from sound_loops.maintenance import cleanup_session_renders
 from sound_loops.render import set_render_rating
 from sound_loops.vlm import OllamaSceneAnalyzer
 
@@ -121,6 +122,12 @@ def build_app(settings: Settings) -> gr.Blocks:
             raise gr.Error("Сначала запустите подбор кнопкой «Подобрать музыку».")
         config = {"configurable": {"thread_id": thread_id}}
         state = graph.invoke(Command(resume=feedback_text), config)
+        next_nodes = graph.get_state(config).next
+        if not next_nodes:
+            # Сессия завершена (круги исчерпаны или пользователь принял
+            # результат пустой обратной связью) — оставляем только рендеры
+            # с rating='good' из всех кругов, остальное подчищаем.
+            cleanup_session_renders(conn, state.get("all_render_ids", []))
         videos = _pad_videos(state["output_paths"], settings.agent_slot_count)
         ratings_reset = [None] * settings.agent_slot_count
         return (
@@ -129,7 +136,7 @@ def build_app(settings: Settings) -> gr.Blocks:
             _format_internals(state),
             "",
             state.get("render_ids", []),
-            _round_label(state, graph.get_state(config).next),
+            _round_label(state, next_nodes),
         )
 
     def _make_rate_handler(slot_index: int):

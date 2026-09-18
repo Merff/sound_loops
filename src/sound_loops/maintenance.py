@@ -81,3 +81,55 @@ def clear_analyses(conn: psycopg.Connection) -> ClearAnalysesReport:
     analyses_deleted = conn.execute("DELETE FROM video_analyses").rowcount
     conn.commit()
     return ClearAnalysesReport(analyses_deleted, dependent_deleted, files_deleted, files_missing)
+
+
+@dataclass
+class CleanupSessionReport:
+    good_kept: int = 0
+    bad_kept_files_deleted: int = 0
+    other_deleted: int = 0
+    files_missing: int = 0
+
+    def print_summary(self) -> None:
+        print(
+            f"Сессия: оставлено 'хорошо' {self.good_kept}, у 'плохо' удалён файл (строка осталась) "
+            f"{self.bad_kept_files_deleted}, удалено полностью {self.other_deleted}"
+        )
+
+
+def cleanup_session_renders(conn: psycopg.Connection, render_ids: list[int]) -> CleanupSessionReport:
+    """Вызывается по завершении сессии агента в UI (все круги пройдены или
+    пользователь не дал дальше обратную связь). rating='good' — оставить как
+    есть; rating='bad' — удалить только файл с диска, строку оставить (нужна
+    get_bad_rated_track_ids для постоянного исключения трека для этого лупа,
+    см. CLAUDE.md «Граф-агент»); NULL/'neutral' — удалить и файл, и строку."""
+    if not render_ids:
+        return CleanupSessionReport()
+
+    rows = conn.execute(
+        "SELECT id, output_path, rating FROM renders WHERE id = ANY(%s)", (render_ids,)
+    ).fetchall()
+
+    report = CleanupSessionReport()
+    delete_ids = []
+    for render_id, output_path, rating in rows:
+        if rating == "good":
+            report.good_kept += 1
+            continue
+
+        path = Path(output_path)
+        if path.exists():
+            path.unlink()
+        else:
+            report.files_missing += 1
+
+        if rating == "bad":
+            report.bad_kept_files_deleted += 1
+        else:
+            report.other_deleted += 1
+            delete_ids.append(render_id)
+
+    if delete_ids:
+        conn.execute("DELETE FROM renders WHERE id = ANY(%s)", (delete_ids,))
+    conn.commit()
+    return report
