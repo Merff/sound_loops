@@ -1,14 +1,19 @@
-"""Сборка превью: луп + случайный отрезок трека, подрезанный под его длительность.
+"""Сборка превью: трек проигрывается с начала (почти) целиком, под его
+длительность видео-луп повторяется целое число раз.
 
-Кандидат на отрезок выбирается из tracks и вырезается на лету — заранее
-никакая сетка не считается. Координаты использованного куска (track_id,
-start_seconds) сохраняются прямо в renders — отдельной таблицы под них
-не заводим, так как каждый отрезок используется ровно в одном рендере.
+Трек — естественная единица длительности превью (FMA-отрывки и кураторские
+треки ~30с, длиннее любого лупа): луп повторяется, пока не заполнит трек,
+а не наоборот. Если трек не делится на длительность лупа без остатка,
+лишний хвост (короче одного повтора лупа) отбрасывается с конца — луп либо
+крутится целиком, либо не крутится вовсе, обрывать его на середине цикла не
+хотим. Кандидат на трек выбирается из tracks — заранее никакая сетка не
+считается. track_id/start_seconds (всегда 0.0 — трек начинается с начала)
+сохраняются прямо в renders — отдельной таблицы под них не заводим, так как
+каждый отрезок используется ровно в одном рендере.
 """
 
 from __future__ import annotations
 
-import random
 import tempfile
 import uuid
 from dataclasses import dataclass
@@ -25,24 +30,12 @@ class RenderError(RuntimeError):
     pass
 
 
-def pick_random_start(track_duration_seconds: float, needed_seconds: float) -> float:
-    """Случайная точка начала внутри трека, чтобы после неё хватило needed_seconds.
-
-    Трек должен быть не короче needed_seconds — это проверяется заранее
-    при выборе кандидата (get_random_track), здесь только защита от
-    неверного использования.
-    """
-    if needed_seconds <= 0:
-        raise ValueError("needed_seconds должно быть больше нуля")
-    if track_duration_seconds < needed_seconds:
-        raise ValueError(
-            f"трек короче нужного отрезка: {track_duration_seconds} < {needed_seconds}"
-        )
-
-    max_start = track_duration_seconds - needed_seconds
-    if max_start <= 0:
-        return 0.0
-    return random.uniform(0, max_start)
+def compute_repeat_count(loop_duration_seconds: float, track_duration_seconds: float) -> int:
+    """Сколько раз луп целиком помещается в трек — заполняем длительность
+    трека повторами лупа, остаток короче одного повтора отбрасывается.
+    Минимум 1 (не бывает нулевой длительности рендера), хотя на практике
+    трек всегда не короче лупа (см. get_random_track/search)."""
+    return max(1, int(track_duration_seconds // loop_duration_seconds))
 
 
 @dataclass(frozen=True)
@@ -115,13 +108,15 @@ def render_preview(
     analysis_id: int | None = None,
     music_query: str | None = None,
 ) -> tuple[int, Path]:
-    """Вырезать случайный отрезок трека под длительность лупа, склеить с
-    видео и записать renders. Общий хвост render_once/match_once/агентного
-    узла render (итерация 5) — каждый по-своему выбирает трек, дальше всё
+    """Взять трек (почти) целиком, повторить луп нужное число раз, склеить и
+    записать renders. Общий хвост render_once/match_once/агентного узла
+    render (итерация 5) — каждый по-своему выбирает трек, дальше всё
     одинаково. analysis_id/music_query — NULL для случайного baseline'а.
     Возвращает (id рендера, путь) — id нужен агентному UI, чтобы потом
     привязать к этому конкретному превью оценку пользователя (rating)."""
-    start_seconds = pick_random_start(track_duration_seconds, loop.duration_seconds)
+    repeat_count = compute_repeat_count(loop.duration_seconds, track_duration_seconds)
+    final_duration = repeat_count * loop.duration_seconds
+    start_seconds = 0.0  # всегда с начала трека, остаток короче лупа отбрасывается с конца
 
     settings.output_dir.mkdir(parents=True, exist_ok=True)
     output_name = f"{Path(loop.path).stem}_{uuid.uuid4().hex[:8]}.mp4"
@@ -133,11 +128,11 @@ def render_preview(
         extract_audio_segment(
             track_path=Path(track_path),
             start_seconds=start_seconds,
-            duration_seconds=loop.duration_seconds,
+            duration_seconds=final_duration,
             fade_seconds=settings.fade_seconds,
             output_path=tmp_audio_path,
         )
-        mux_loop_with_audio(Path(loop.path), tmp_audio_path, output_path)
+        mux_loop_with_audio(Path(loop.path), tmp_audio_path, output_path, repeat_count=repeat_count)
     finally:
         tmp_audio_path.unlink(missing_ok=True)
 
@@ -148,7 +143,7 @@ def render_preview(
         VALUES (%s, %s, %s, %s, %s, %s, %s)
         RETURNING id
         """,
-        (loop.id, track_id, start_seconds, str(output_path), loop.duration_seconds, analysis_id, music_query),
+        (loop.id, track_id, start_seconds, str(output_path), final_duration, analysis_id, music_query),
     ).fetchone()
     conn.commit()
 

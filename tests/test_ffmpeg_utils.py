@@ -73,6 +73,29 @@ def test_mux_trims_audio_longer_than_loop(silent_loop: Path, tone_track: Path, t
     assert abs(result.duration_seconds - loop_info.duration_seconds) < DURATION_TOLERANCE
 
 
+def test_mux_repeats_loop_to_match_repeat_count(silent_loop: Path, tone_track: Path, tmp_path: Path):
+    loop_info = probe(silent_loop)
+    repeat_count = 2
+    final_duration = loop_info.duration_seconds * repeat_count
+
+    audio_segment = tmp_path / "long_segment.m4a"
+    extract_audio_segment(
+        track_path=tone_track,
+        start_seconds=0.0,
+        duration_seconds=final_duration,
+        fade_seconds=0.3,
+        output_path=audio_segment,
+    )
+
+    output = tmp_path / "render_looped.mp4"
+    mux_loop_with_audio(silent_loop, audio_segment, output, repeat_count=repeat_count)
+
+    result = probe(output)
+    assert result.has_video
+    assert result.has_audio
+    assert abs(result.duration_seconds - final_duration) < DURATION_TOLERANCE
+
+
 def test_extract_frames_returns_requested_count_of_valid_jpegs(silent_loop: Path):
     loop_info = probe(silent_loop)
 

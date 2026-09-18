@@ -207,14 +207,18 @@ def decode_frames_gray(path: Path, sample_fps: float, size: int) -> np.ndarray:
     return raw[: n_frames * frame_bytes].reshape(n_frames, size, size)
 
 
-def mux_loop_with_audio(loop_path: Path, audio_path: Path, output_path: Path) -> None:
-    """Склеить немой видео-луп с готовым аудио без перекодирования видео.
+def mux_loop_with_audio(loop_path: Path, audio_path: Path, output_path: Path, repeat_count: int = 1) -> None:
+    """Склеить видео-луп (повторённый repeat_count раз) с готовым аудио без
+    перекодирования видео. -stream_loop N повторяет вход N+1 раз, отсюда
+    repeat_count - 1; проверено вручную, что copy-кодек не даёт склеек и
+    дублей/пропусков кадров на границах повторов.
 
     Итоговую длительность определяет видео: -shortest обрезает лишнее аудио,
     если оно почему-то оказалось длиннее.
     """
     cmd = [
         "ffmpeg", "-y",
+        "-stream_loop", str(repeat_count - 1),
         "-i", str(loop_path),
         "-i", str(audio_path),
         "-map", "0:v:0",

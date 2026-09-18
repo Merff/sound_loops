@@ -1,6 +1,6 @@
 """Тесты render.py.
 
-pick_random_start — чистая функция, без базы. Остальное — на настоящей
+compute_repeat_count — чистая функция, без базы. Остальное — на настоящей
 тестовой базе (см. db_conn/db_settings в conftest.py).
 """
 
@@ -13,38 +13,26 @@ from sound_loops.ffmpeg_utils import probe
 from sound_loops.ingest import IngestReport, ingest_loop_file, ingest_track_file
 from sound_loops.render import (
     RenderError,
+    compute_repeat_count,
     get_bad_rated_track_ids,
     get_loop_by_path,
     get_random_loop,
     get_random_track,
-    pick_random_start,
     render_once,
     render_preview,
     set_render_rating,
 )
 
 
-def test_start_within_bounds_for_various_lengths():
-    for _ in range(200):
-        start = pick_random_start(track_duration_seconds=30.0, needed_seconds=7.0)
-        assert 0.0 <= start <= 30.0 - 7.0
+def test_compute_repeat_count_floors_remainder():
+    assert compute_repeat_count(loop_duration_seconds=10.0, track_duration_seconds=30.0) == 3
+    # 30 // 11 = 2 повтора (22с), оставшиеся 8с трека отбрасываются — не
+    # обрываем луп на середине цикла ради того, чтобы доиграть трек целиком.
+    assert compute_repeat_count(loop_duration_seconds=11.0, track_duration_seconds=30.0) == 2
 
 
-def test_track_exactly_as_long_as_needed_always_starts_at_zero():
-    for _ in range(20):
-        assert pick_random_start(track_duration_seconds=5.0, needed_seconds=5.0) == 0.0
-
-
-def test_track_shorter_than_needed_raises():
-    with pytest.raises(ValueError):
-        pick_random_start(track_duration_seconds=4.0, needed_seconds=5.0)
-
-
-def test_non_positive_needed_raises():
-    with pytest.raises(ValueError):
-        pick_random_start(track_duration_seconds=30.0, needed_seconds=0.0)
-    with pytest.raises(ValueError):
-        pick_random_start(track_duration_seconds=30.0, needed_seconds=-1.0)
+def test_compute_repeat_count_never_below_one():
+    assert compute_repeat_count(loop_duration_seconds=10.0, track_duration_seconds=9.5) == 1
 
 
 def _insert_loop(
@@ -134,10 +122,11 @@ def test_get_loop_by_path_raises_for_invalid_loop(db_conn, db_settings, get_sile
 def test_render_once_produces_valid_mp4_and_db_row(
     db_conn, db_settings, get_silent_loop, get_tone_track, tmp_path
 ):
+    # трек 22с, луп 5с -> 4 повтора = 20с, 2с трека остаются неиспользованными
     loop_id = _insert_loop(
         db_conn, db_settings, get_silent_loop, tmp_path, "loop.mp4", duration=5.0
     )
-    track_id = _insert_track(db_conn, get_tone_track, tmp_path, 3, duration=20.0)
+    track_id = _insert_track(db_conn, get_tone_track, tmp_path, 3, duration=22.0)
     db_conn.commit()
 
     output_path = render_once(db_conn, db_settings)
@@ -146,7 +135,7 @@ def test_render_once_produces_valid_mp4_and_db_row(
     result = probe(output_path)
     assert result.has_video
     assert result.has_audio
-    assert result.duration_seconds == pytest.approx(5.0, abs=0.2)
+    assert result.duration_seconds == pytest.approx(20.0, abs=0.3)
 
     row = db_conn.execute(
         "SELECT loop_id, track_id, start_seconds, output_path, duration_seconds FROM renders"
@@ -155,9 +144,9 @@ def test_render_once_produces_valid_mp4_and_db_row(
     got_loop_id, got_track_id, start_seconds, output_path_in_db, duration_seconds = row
     assert got_loop_id == loop_id
     assert got_track_id == track_id
-    assert 0.0 <= start_seconds <= 20.0 - 5.0
+    assert start_seconds == 0.0
     assert output_path_in_db == str(output_path)
-    assert duration_seconds == pytest.approx(5.0, abs=0.2)
+    assert duration_seconds == pytest.approx(20.0, abs=0.3)
 
 
 def test_render_repeatedly_yields_one_render_row_each_time(
@@ -174,7 +163,8 @@ def test_render_repeatedly_yields_one_render_row_each_time(
         output_path = render_once(db_conn, db_settings)
         result = probe(output_path)
         assert result.has_video and result.has_audio
-        assert result.duration_seconds == pytest.approx(4.0, abs=0.2)
+        # 25с трека // 4с лупа = 6 повторов = 24с
+        assert result.duration_seconds == pytest.approx(24.0, abs=0.3)
 
     renders = db_conn.execute("SELECT count(*) FROM renders").fetchone()[0]
     assert renders == render_count
