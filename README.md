@@ -577,10 +577,15 @@ vision-моделей в Ollama она — исключение, совмеща�
 
 ### Граф
 
-```
-analyze -> plan -> rerank -> render -> feedback --[текст, круг < лимита]--> plan
-                                            |
-                                            +--[иначе]--> конец
+```mermaid
+flowchart TD
+    UI["Gradio UI<br/>клик «Подобрать музыку»"] --> A[analyze]
+    A --> P[plan]
+    P --> RR[rerank]
+    RR --> RD[render]
+    RD --> F["feedback<br/>(interrupt)"]
+    F -->|"текст + круг < лимита"| P
+    F -->|иначе| E([конец])
 ```
 
 - **analyze** — кадры лупа + motion → описание сцены (тот же кеш
