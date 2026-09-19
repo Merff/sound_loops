@@ -1,13 +1,7 @@
-"""Веб-интерфейс на Gradio (итерация 5, docs/sound_loops-iteration-5.md):
+"""Веб-интерфейс на Gradio:
 загрузка лупа -> три превью с подобранной музыкой -> обратная связь текстом
 -> новая подборка. Тонкий слой над agent_graph.py — вся логика подбора там,
 здесь только форма и показ результата.
-
-Один долгоживущий процесс с одним соединением к базе и одним чекпойнтером
-на всё время работы интерфейса — это первый long-running процесс в
-проекте (CLI-команды раньше открывали соединение на время одной команды).
-Для локального однопользовательского MVP этого достаточно, пул соединений
-был бы преждевременной сложностью.
 """
 
 from __future__ import annotations
@@ -37,15 +31,15 @@ if TYPE_CHECKING:
 def _format_internals(state: dict) -> str:
     scene = state.get("scene") or {}
     lines = [
-        f"**Сцена:** {scene.get('setting', '?')}, движение {scene.get('motion', '?')}, "
-        f"настроение {', '.join(scene.get('mood', []))}",
-        f"**Вызовов инструмента моделью / резервных:** "
+        f"Сцена - {scene.get('setting', '?')}, движение - {scene.get('motion', '?')}, "
+        f"настроение - {', '.join(scene.get('mood', []))}",
+        f"Вызовов инструмента моделью / резервных: "
         f"{state.get('tool_calls_total', 0)} / {state.get('fallback_used_total', 0)}",
     ]
     for i, (query, reasoning) in enumerate(
         zip(state.get("slot_queries", []), state.get("slot_reasoning", []), strict=False), start=1
     ):
-        lines.append(f"**Вариант {i}:** запрос — _{query}_ · выбор модели: {reasoning}")
+        lines.append(f"**Вариант {i}:**<br>Запрос — _{query}_<br>Выбор модели - {reasoning}")
     return "\n\n".join(lines)
 
 
@@ -170,7 +164,7 @@ def build_app(settings: Settings) -> gr.Blocks:
             internals = gr.Markdown("")
 
         feedback = gr.Textbox(label="Обратная связь (например «мрачнее» или «без вокала»)")
-        feedback_btn = gr.Button("Переподобрать")
+        feedback_btn = gr.Button("Продолжить")
 
         run_outputs = [*video_slots, *rating_slots, internals, thread_state, render_ids_state, round_label]
         run_btn.click(run_first_pass, [upload, library], run_outputs)
