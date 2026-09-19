@@ -28,7 +28,7 @@ class IngestReport:
     tracks_updated: int = 0
     tracks_skipped: list[tuple[Path, str]] = field(default_factory=list)
 
-    def print_summary(self) -> None:
+    def print_loops_summary(self) -> None:
         print(
             f"Лупы: добавлено {self.loops_added}, обновлено {self.loops_updated}, "
             f"пропущено {len(self.loops_skipped)}"
@@ -36,12 +36,17 @@ class IngestReport:
         for path, reason in self.loops_skipped:
             print(f"  пропущен {path}: {reason}")
 
+    def print_tracks_summary(self) -> None:
         print(
             f"Треки: добавлено {self.tracks_added}, обновлено {self.tracks_updated}, "
             f"пропущено {len(self.tracks_skipped)}"
         )
         for path, reason in self.tracks_skipped:
             print(f"  пропущен {path}: {reason}")
+
+    def print_summary(self) -> None:
+        self.print_loops_summary()
+        self.print_tracks_summary()
 
 
 def loop_skip_reason(result: ProbeResult, settings: Settings) -> str | None:

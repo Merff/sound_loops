@@ -1,4 +1,4 @@
-.PHONY: sync init-db ingest render render-loop index tag-tracks search analyze analyze-loop match match-loop ui eval-run eval-run-loop eval-compare blind-eval clear-renders clear-analyses clap-check test lint clean
+.PHONY: sync init-db ingest-loops ingest-tracks render render-loop index tag-tracks search analyze analyze-loop match match-loop ui eval-run eval-run-loop eval-compare blind-eval clear-renders clear-analyses clap-check test lint clean
 
 # Установить зависимости проекта
 sync:
@@ -8,9 +8,13 @@ sync:
 init-db:
 	uv run sound-loops init-db
 
-# Просканировать data/loops и data/raw, заполнить таблицы
-ingest:
-	uv run sound-loops ingest
+# Просканировать только data/loops, заполнить таблицу loops
+ingest-loops:
+	uv run sound-loops ingest-loops
+
+# Просканировать только data/raw, заполнить таблицу tracks
+ingest-tracks:
+	uv run sound-loops ingest-tracks
 
 # Собрать превью: случайный луп + случайный отрезок трека
 render:

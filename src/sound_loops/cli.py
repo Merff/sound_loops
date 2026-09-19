@@ -1,5 +1,6 @@
-"""Точка входа: sound-loops init-db|ingest|render|index|tag-tracks|search|
-analyze|match|eval-run|eval-compare|blind-eval|clear-renders|clear-analyses|clap-check."""
+"""Точка входа: sound-loops init-db|ingest-loops|ingest-tracks|render|index|
+tag-tracks|search|analyze|match|eval-run|eval-compare|blind-eval|clear-renders|
+clear-analyses|clap-check."""
 
 from __future__ import annotations
 
@@ -10,7 +11,7 @@ import click
 
 from sound_loops.config import load_settings
 from sound_loops.db import connect, ensure_database_exists, init_schema
-from sound_loops.ingest import ingest
+from sound_loops.ingest import IngestReport, scan_loops, scan_tracks
 from sound_loops.render import render_once
 
 
@@ -40,13 +41,24 @@ def init_db_cmd() -> None:
     click.echo("База, схема и чекпойнтер агента готовы.")
 
 
-@cli.command("ingest")
-def ingest_cmd() -> None:
-    """Просканировать data/loops и data/raw, заполнить таблицы."""
+@cli.command("ingest-loops")
+def ingest_loops_cmd() -> None:
+    """Просканировать только data/loops, заполнить таблицу loops."""
     settings = load_settings()
+    report = IngestReport()
     with connect(settings.database_url) as conn:
-        report = ingest(conn, settings)
-    report.print_summary()
+        scan_loops(conn, settings, report)
+    report.print_loops_summary()
+
+
+@cli.command("ingest-tracks")
+def ingest_tracks_cmd() -> None:
+    """Просканировать только data/raw, заполнить таблицу tracks."""
+    settings = load_settings()
+    report = IngestReport()
+    with connect(settings.database_url) as conn:
+        scan_tracks(conn, settings, report)
+    report.print_tracks_summary()
 
 
 @cli.command("render")

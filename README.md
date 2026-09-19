@@ -229,7 +229,8 @@ make init-db             # база + миграции (yoyo, идемпотен
 `uv run sound-loops ...`):
 
 ```bash
-make ingest                                # заполнить loops/tracks из data/
+make ingest-loops                          # заполнить loops из data/loops
+make ingest-tracks                         # заполнить tracks из data/raw
 make index                                 # CLAP-эмбеддинги треков
 make tag-tracks                            # темп + zero-shot теги (нужен index)
 make search QUERY="sad piano"              # топ-5 по текстовому описанию

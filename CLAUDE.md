@@ -38,7 +38,7 @@ README) ·
 
 ## Команды
 
-`cli.py`: `init-db`, `ingest`, `render [--loop PATH]`, `index`,
+`cli.py`: `init-db`, `ingest-loops`, `ingest-tracks`, `render [--loop PATH]`, `index`,
 `search QUERY [--top N] [--export-dir DIR]`, `analyze [--loop PATH]`,
 `match [--loop PATH] [--filters] [--rerank]`, `ui`, `clear-renders`,
 `clear-analyses`, `clap-check`, `eval-run [--loop PATH] [--filters]
