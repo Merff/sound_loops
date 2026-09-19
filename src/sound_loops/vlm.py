@@ -187,11 +187,10 @@ _SCENE_INSTRUCTION = (
 
 # Жанровые теги реально проиндексированного FMA_small (см. tracks.genre) —
 # без этого шаг B тянется к orchestral/cinematic, которых в библиотеке нет.
-# Библиотека сбалансирована точно (по 100 треков на жанр, см. README) —
+# Библиотека сбалансирована точно (по 1000 треков на жанр, см. README) —
 # короткие описания ниже призваны отучить модель от дефолта на electronic
 # и дать за что зацепиться помимо самого названия жанра. Не приватная —
-# переиспользуется agent_planner.py (узел plan, итерация 5) для того же
-# промпта про жанры библиотеки.
+# переиспользуется agent_planner.py для того же промпта про жанры библиотеки.
 LIBRARY_GENRES_WITH_CHARACTER = (
     "Electronic (synths, drum machines, digital production), "
     "Rock (electric guitars, live drums, driving energy), "
@@ -232,8 +231,8 @@ _MUSIC_SYSTEM_PROMPT = (
     "Query: warm mid-tempo pop with a catchy hook and bright synths\n"
     "Vocals: with_vocals\n\n"
     "Setting: nightlife, mood romantic/melancholic, motion slow\n"
-    "Query: slow moody electronic with warm synth pads and a soft beat\n"
-    "Vocals: instrumental\n\n"
+    "Query: slow moody synth-pop ballad with soft vocals and warm pads\n"
+    "Vocals: with_vocals\n\n"
     "Setting: sports, mood aggressive/epic, motion fast\n"
     "Query: fast aggressive hip-hop with heavy bass and sharp percussion\n"
     "Vocals: with_vocals\n\n"
