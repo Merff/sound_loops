@@ -5,7 +5,7 @@ from sound_loops.attrs import compute_attrs
 from sound_loops.ffmpeg_utils import probe
 from sound_loops.index import index_tracks
 from sound_loops.ingest import IngestReport, ingest_loop_file, ingest_track_file
-from sound_loops.match import MatchError, match_once
+from sound_loops.match import MatchError, manual_match, match_once
 
 
 def _setup_loop_and_track(conn, settings, get_silent_loop, get_tone_track, tmp_path, fake_embedder):
@@ -136,3 +136,28 @@ def test_match_once_picks_random_loop_when_no_path_given(
     result = match_once(db_conn, fake_scene_analyzer, fake_embedder, db_settings, loop_path=None)
 
     assert result.output_path.exists()
+
+
+def test_manual_match_renders_candidates_without_analysis(
+    db_conn, db_settings, get_silent_loop, get_tone_track, tmp_path, fake_embedder
+):
+    """manual_match не требует analyze — в отличие от match_once, работает
+    сразу по тексту пользователя."""
+    loop_path = get_silent_loop(tmp_path / "loop.mp4", 4.0)
+    ingest_loop_file(db_conn, loop_path, db_settings)
+    for i in range(2):
+        track_path = get_tone_track(tmp_path / f"00000{i + 1}.mp3", 12.0)
+        ingest_track_file(db_conn, track_path, {}, IngestReport())
+    index_tracks(db_conn, fake_embedder, batch_size=8)
+
+    result = manual_match(db_conn, fake_embedder, db_settings, loop_path, "spooky ambient", top_n=3)
+
+    assert result.query == "spooky ambient"
+    assert 1 <= len(result.renders) <= 2
+    render_id, output_path = result.renders[0]
+    assert output_path.exists()
+
+    row = db_conn.execute(
+        "SELECT analysis_id, music_query FROM renders WHERE id = %s", (render_id,)
+    ).fetchone()
+    assert row == (None, "spooky ambient")

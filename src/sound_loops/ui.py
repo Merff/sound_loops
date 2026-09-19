@@ -1,7 +1,8 @@
-"""Веб-интерфейс на Gradio:
-загрузка лупа -> три превью с подобранной музыкой -> обратная связь текстом
--> новая подборка. Тонкий слой над agent_graph.py — вся логика подбора там,
-здесь только форма и показ результата.
+"""Веб-интерфейс на Gradio, две вкладки:
+«Агент» — загрузка лупа -> три превью с подобранной музыкой -> обратная
+связь текстом -> новая подборка (логика в agent_graph.py); «Поиск по
+запросу» — свой текстовый запрос вместо VLM-анализа сцены (логика в
+match.py::manual_match). Здесь только форма и показ результата.
 """
 
 from __future__ import annotations
@@ -19,6 +20,7 @@ from sound_loops.agent_graph import build_agent_graph, initial_state
 from sound_loops.config import Settings, load_settings
 from sound_loops.hf_cache import ensure_offline_if_cached
 from sound_loops.maintenance import cleanup_session_renders
+from sound_loops.match import manual_match
 from sound_loops.render import set_render_rating
 from sound_loops.vlm import OllamaSceneAnalyzer
 
@@ -133,6 +135,33 @@ def build_app(settings: Settings) -> gr.Blocks:
             _round_label(state, next_nodes),
         )
 
+    def run_manual_search(
+        uploaded_video: str | None, library_choice: str | None, query: str, prev_render_ids: list[int]
+    ):
+        loop_path = Path(uploaded_video) if uploaded_video else (Path(library_choice) if library_choice else None)
+        if loop_path is None:
+            raise gr.Error("Загрузите видео или выберите луп из библиотеки.")
+        if not query or not query.strip():
+            raise gr.Error("Введите текстовый запрос.")
+        if uploaded_video:
+            loop_path = _persist_upload(uploaded_video, settings.loops_dir)
+
+        # Предыдущая подборка этой вкладки больше не нужна — подчищаем её,
+        # как и по завершении сессии агента (см. cleanup_session_renders).
+        cleanup_session_renders(conn, prev_render_ids)
+
+        result = manual_match(conn, embedder, settings, loop_path, query.strip(), settings.agent_slot_count)
+        videos = _pad_videos([str(path) for _id, path in result.renders], settings.agent_slot_count)
+        ratings_reset = [None] * settings.agent_slot_count
+        render_ids = [render_id for render_id, _path in result.renders]
+        return (*videos, *ratings_reset, render_ids)
+
+    def run_manual_cleanup(render_ids: list[int]):
+        if not render_ids:
+            return "", []
+        report = cleanup_session_renders(conn, render_ids)
+        return "", []
+
     def _make_rate_handler(slot_index: int):
         def handler(render_ids: list[int], rating_label: str | None) -> None:
             if not rating_label or slot_index >= len(render_ids):
@@ -142,38 +171,79 @@ def build_app(settings: Settings) -> gr.Blocks:
         return handler
 
     with gr.Blocks(title="sound_loops") as demo:
-        gr.Markdown("# sound_loops — агент подбора музыки к видео-лупу")
-        thread_state = gr.State(None)
-        render_ids_state = gr.State([])
+        gr.Markdown("# sound_loops — подбор музыки к видео-лупу")
 
-        with gr.Row():
-            upload = gr.Video(label="Загрузить видео-луп", sources=["upload"])
-            library = gr.Dropdown(library_loops, label="...или выбрать из библиотеки (data/loops)")
-        run_btn = gr.Button("Подобрать музыку", variant="primary")
-        round_label = gr.Markdown("")
+        with gr.Tabs():
+            with gr.Tab("Агент"):
+                thread_state = gr.State(None)
+                render_ids_state = gr.State([])
 
-        video_slots = []
-        rating_slots = []
-        with gr.Row():
-            for i in range(settings.agent_slot_count):
-                with gr.Column():
-                    video_slots.append(gr.Video(label=f"Вариант {i + 1}"))
-                    rating_slots.append(gr.Radio(list(_RATING_LABELS), label="Оценка", value=None))
+                with gr.Row():
+                    upload = gr.Video(label="Загрузить видео-луп", sources=["upload"])
+                    library = gr.Dropdown(library_loops, label="...или выбрать из библиотеки (data/loops)")
+                run_btn = gr.Button("Подобрать музыку", variant="primary")
+                round_label = gr.Markdown("")
 
-        with gr.Accordion("Что решила модель", open=False):
-            internals = gr.Markdown("")
+                video_slots = []
+                rating_slots = []
+                with gr.Row():
+                    for i in range(settings.agent_slot_count):
+                        with gr.Column():
+                            video_slots.append(gr.Video(label=f"Вариант {i + 1}"))
+                            rating_slots.append(gr.Radio(list(_RATING_LABELS), label="Оценка", value=None))
 
-        feedback = gr.Textbox(label="Обратная связь (например «мрачнее» или «без вокала»)")
-        feedback_btn = gr.Button("Продолжить")
+                with gr.Accordion("Что решила модель", open=False):
+                    internals = gr.Markdown("")
 
-        run_outputs = [*video_slots, *rating_slots, internals, thread_state, render_ids_state, round_label]
-        run_btn.click(run_first_pass, [upload, library], run_outputs)
+                feedback = gr.Textbox(label="Обратная связь (например «мрачнее» или «без вокала»)")
+                feedback_btn = gr.Button("Продолжить")
 
-        feedback_outputs = [*video_slots, *rating_slots, internals, feedback, render_ids_state, round_label]
-        feedback_btn.click(run_feedback, [feedback, thread_state], feedback_outputs)
+                run_outputs = [*video_slots, *rating_slots, internals, thread_state, render_ids_state, round_label]
+                run_btn.click(run_first_pass, [upload, library], run_outputs)
 
-        for i, rating_radio in enumerate(rating_slots):
-            rating_radio.change(_make_rate_handler(i), [render_ids_state, rating_radio], [])
+                feedback_outputs = [*video_slots, *rating_slots, internals, feedback, render_ids_state, round_label]
+                feedback_btn.click(run_feedback, [feedback, thread_state], feedback_outputs)
+
+                for i, rating_radio in enumerate(rating_slots):
+                    rating_radio.change(_make_rate_handler(i), [render_ids_state, rating_radio], [])
+
+            with gr.Tab("Поиск по запросу"):
+                gr.Markdown("Свой текстовый запрос вместо автоматического анализа сцены — 3 варианта трека под него.")
+                manual_render_ids_state = gr.State([])
+
+                with gr.Row():
+                    manual_upload = gr.Video(label="Загрузить видео-луп", sources=["upload"])
+                    manual_library = gr.Dropdown(library_loops, label="...или выбрать из библиотеки (data/loops)")
+                manual_query = gr.Textbox(
+                    label="Какая нужна музыка",
+                    info="Текст на английском — CLAP обучен на английских описаниях, русский текст он не понимает.",
+                    placeholder="calm piano, no vocals",
+                )
+                manual_run_btn = gr.Button("Найти музыку", variant="primary")
+
+                manual_video_slots = []
+                manual_rating_slots = []
+                with gr.Row():
+                    for i in range(settings.agent_slot_count):
+                        with gr.Column():
+                            manual_video_slots.append(gr.Video(label=f"Вариант {i + 1}"))
+                            manual_rating_slots.append(gr.Radio(list(_RATING_LABELS), label="Оценка", value=None))
+
+                manual_run_outputs = [*manual_video_slots, *manual_rating_slots, manual_render_ids_state]
+                manual_run_btn.click(
+                    run_manual_search,
+                    [manual_upload, manual_library, manual_query, manual_render_ids_state],
+                    manual_run_outputs,
+                )
+
+                for i, rating_radio in enumerate(manual_rating_slots):
+                    rating_radio.change(_make_rate_handler(i), [manual_render_ids_state, rating_radio], [])
+
+                manual_status = gr.Markdown("")
+                manual_done_btn = gr.Button("Готово")
+                manual_done_btn.click(
+                    run_manual_cleanup, [manual_render_ids_state], [manual_status, manual_render_ids_state]
+                )
 
     # _checkpointer_cm не используется ни в одном замыкании выше — без этой
     # ссылки сборщик мусора закроет его соединение сразу после возврата из

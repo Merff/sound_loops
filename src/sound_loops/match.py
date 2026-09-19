@@ -33,6 +33,42 @@ class MatchError(RuntimeError):
 
 
 @dataclass(frozen=True)
+class ManualMatchResult:
+    loop: LoopRow
+    query: str
+    candidates: list[SearchResult]
+    renders: list[tuple[int, Path]]
+
+
+def manual_match(
+    conn: psycopg.Connection,
+    embedder: Embedder,
+    settings: Settings,
+    loop_path: Path,
+    query: str,
+    top_n: int,
+) -> ManualMatchResult:
+    """Прямой текстовый запрос пользователя вместо VLM-цепочки (analyze не
+    нужен) -> top_n треков CLAP-поиском -> рендер каждого. analysis_id
+    остаётся NULL (не VLM-цепочка), music_query — текст пользователя, этим
+    отличается от random baseline'а итерации 0 (там оба поля NULL)."""
+    loop = get_loop_by_path(conn, loop_path, settings)
+    candidates = search_tracks(conn, embedder, query, top_n, min_duration_seconds=loop.duration_seconds)
+
+    renders = []
+    for candidate in candidates:
+        track_duration = conn.execute(
+            "SELECT duration_seconds FROM tracks WHERE id = %s", (candidate.id,)
+        ).fetchone()[0]
+        render_id, output_path = render_preview(
+            conn, settings, loop, candidate.id, candidate.path, track_duration, None, query
+        )
+        renders.append((render_id, output_path))
+
+    return ManualMatchResult(loop=loop, query=query, candidates=candidates, renders=renders)
+
+
+@dataclass(frozen=True)
 class MatchResult:
     loop: LoopRow
     analysis: AnalysisRecord
