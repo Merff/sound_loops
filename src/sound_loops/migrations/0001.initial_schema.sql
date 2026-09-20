@@ -1,8 +1,3 @@
--- Итоговая схема на момент введения yoyo (после того как отдельная
--- таблица track_segments была слита в renders). IF NOT EXISTS — чтобы
--- эта миграция безопасно накатывалась и на уже существующие базы, где
--- таблицы были созданы вручную до перехода на yoyo.
-
 CREATE TABLE IF NOT EXISTS loops (
     id SERIAL PRIMARY KEY,
     path TEXT NOT NULL UNIQUE,
@@ -23,9 +18,6 @@ CREATE TABLE IF NOT EXISTS tracks (
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- Координаты вырезанного отрезка (track_id, start_seconds) хранятся
--- прямо здесь, а не в отдельной таблице: каждый отрезок вырезается на
--- лету и используется ровно в одном рендере.
 CREATE TABLE IF NOT EXISTS renders (
     id SERIAL PRIMARY KEY,
     loop_id INTEGER NOT NULL REFERENCES loops(id),
