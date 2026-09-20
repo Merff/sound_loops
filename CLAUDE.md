@@ -263,8 +263,7 @@ README «Поиск музыки по тексту»).
 ## Локальное окружение (эта машина)
 
 - ffmpeg/ffprobe — `brew install ffmpeg` (не были предустановлены).
-- Postgres 15 (Homebrew), роль `administrator`, peer-auth, `.env`:
-  `postgresql://administrator@localhost:5432/sound_loops`.
+- Postgres 15 (Homebrew).
 - Python 3.12 через `uv` (системный `python3` — 3.9.6, не подходит).
 - Ollama — `brew install ollama` + `brew services start ollama`
   (`localhost:11434`, `VLM_BASE_URL`). Модель `qwen3-vl:4b-instruct`
