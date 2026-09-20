@@ -7,6 +7,7 @@
       "epic"
     ],
     "vocals": "instrumental",
+    "good_query": "",
     "good_tracks": [
       "data/raw/fma_small/156/900001.mp3"
     ]
@@ -19,6 +20,7 @@
       "tense"
     ],
     "vocals": "vocals_ok",
+    "good_query": "",
     "good_tracks": [
       "data/raw/fma_small/156/900002.mp3"
     ]
@@ -31,6 +33,7 @@
       "melancholic", "dreamy"
     ],
     "vocals": "instrumental",
+    "good_query": "",
     "good_tracks": [
       "data/raw/fma_small/156/900003.mp3"
     ]
@@ -43,6 +46,7 @@
       "nostalgic", "tragic"
     ],
     "vocals": "instrumental",
+    "good_query": "",
     "good_tracks": [
       "data/raw/fma_small/156/900004.mp3"
     ]
@@ -55,6 +59,7 @@
       "comic"
     ],
     "vocals": "any",
+    "good_query": "",
     "good_tracks": [
       "data/raw/fma_small/156/900005.mp3"
     ]
@@ -67,6 +72,7 @@
       "joyful", "nostalgic", "dreamy"
     ],
     "vocals": "any",
+    "good_query": "",
     "good_tracks": [
       "data/raw/fma_small/156/900006.mp3"
     ]
@@ -79,6 +85,7 @@
       "nostalgic", "comic", "dreamy"
     ],
     "vocals": "any",
+    "good_query": "",
     "good_tracks": [
       "data/raw/fma_small/156/900007.mp3"
     ]
@@ -91,6 +98,7 @@
       "epic", "tense"
     ],
     "vocals": "any",
+    "good_query": "",
     "good_tracks": [
       "data/raw/fma_small/156/900008.mp3"
     ]
@@ -103,6 +111,7 @@
       "epic", "aggressive"
     ],
     "vocals": "instrumental",
+    "good_query": "",
     "good_tracks": [
       "data/raw/fma_small/156/900009.mp3"
     ]
@@ -115,6 +124,7 @@
       "tense"
     ],
     "vocals": "instrumental",
+    "good_query": "",
     "good_tracks": [
       "data/raw/fma_small/156/900010.mp3"
     ]
@@ -127,6 +137,7 @@
       "comic"
     ],
     "vocals": "any",
+    "good_query": "",
     "good_tracks": [
       "data/raw/fma_small/156/900011.mp3"
     ]
@@ -139,6 +150,7 @@
       "melancholic", "dreamy"
     ],
     "vocals": "instrumental",
+    "good_query": "",
     "good_tracks": [
       "data/raw/fma_small/156/900012.mp3"
     ]
@@ -151,6 +163,7 @@
       "joyful", "nostalgic", "dreamy"
     ],
     "vocals": "any",
+    "good_query": "",
     "good_tracks": [
       "data/raw/fma_small/156/900013.mp3"
     ]
@@ -163,6 +176,7 @@
       "romantic", "dreamy", "festive"
     ],
     "vocals": "any",
+    "good_query": "",
     "good_tracks": [
 
     ]
@@ -175,6 +189,7 @@
       "comic", "tense"
     ],
     "vocals": "instrumental",
+    "good_query": "",
     "good_tracks": [
       "data/raw/fma_small/156/900015.mp3"
     ]
@@ -187,6 +202,7 @@
       "tense", "joyful", "festive"
     ],
     "vocals": "vocals_ok",
+    "good_query": "",
     "good_tracks": [
       "data/raw/fma_small/156/900016.mp3"
     ]
@@ -199,6 +215,7 @@
       "joyful"
     ],
     "vocals": "any",
+    "good_query": "",
     "good_tracks": [
       "data/raw/fma_small/156/900017.mp3"
     ]
@@ -211,6 +228,7 @@
       "melancholic", "comic", "dreamy"
     ],
     "vocals": "instrumental",
+    "good_query": "",
     "good_tracks": [
       "data/raw/fma_small/156/900018.mp3"
     ]
@@ -223,6 +241,7 @@
       "tense", "epic"
     ],
     "vocals": "vocals_ok",
+    "good_query": "",
     "good_tracks": [
       "data/raw/fma_small/156/900019.mp3"
     ]
@@ -235,6 +254,7 @@
       "joyful"
     ],
     "vocals": "any",
+    "good_query": "",
     "good_tracks": [
       "data/raw/fma_small/156/900020.mp3"
     ]
@@ -247,8 +267,10 @@
       "tense", "comic"
     ],
     "vocals": "instrumental",
+    "good_query": "fast, rhythmic hip-hop music",
     "good_tracks": [
-
+      "data/raw/fma_small/011/011793.mp3",
+      "data/raw/fma_small/098/098577.mp3"
     ]
   },
   {
@@ -259,7 +281,10 @@
       "melancholic", "epic"
     ],
     "vocals": "any",
+    "good_query": "slow, melancholic music",
     "good_tracks": [
+      "data/raw/fma_small/138/138025.mp3",
+      "data/raw/fma_small/108/108021.mp3",
       "data/raw/fma_small/156/900022.mp3"
     ]
   },
@@ -271,7 +296,10 @@
       "epic", "triumphant", "tense"
     ],
     "vocals": "vocals_ok",
+    "good_query": "high-energy, triumphant rock music",
     "good_tracks": [
+      "data/raw/fma_small/114/114198.mp3",
+      "data/raw/fma_small/099/099345.mp3",
       "data/raw/fma_small/156/900023.mp3"
     ]
   },
@@ -283,7 +311,9 @@
       "joyful", "triumphant"
     ],
     "vocals": "vocals_ok",
+    "good_query": "Rhythmic, dynamic hip-hop music.",
     "good_tracks": [
+      "data/raw/fma_small/123/123969.mp3",
       "data/raw/fma_small/156/900024.mp3"
     ]
   },
@@ -295,7 +325,10 @@
       "nostalgic", "festive", "melancholic"
     ],
     "vocals": "any",
+    "good_query": "mid-tempo retro electronic dance music",
     "good_tracks": [
+      "data/raw/fma_small/125/125315.mp3",
+      "data/raw/fma_small/114/114292.mp3"
     ]
   },
   {
@@ -306,8 +339,10 @@
       "calm", "melancholic", "dreamy"
     ],
     "vocals": "any",
+    "good_query": "Lyrical, mid-tempo pop music with female vocals.",
     "good_tracks": [
-
+      "data/raw/fma_small/047/047896.mp3",
+      "data/raw/fma_small/064/064006.mp3"
     ]
   },
   {
@@ -318,7 +353,10 @@
       "epic"
     ],
     "vocals": "instrumental",
+    "good_query": "fast electronic music with Asian motifs",
     "good_tracks": [
+      "data/raw/fma_small/142/142080.mp3",
+      "data/raw/fma_small/156/900003.mp3",
       "data/raw/fma_small/156/900027.mp3"
     ]
   },
@@ -330,7 +368,10 @@
       "nostalgic", "epic", "dreamy"
     ],
     "vocals": "any",
+    "good_query": "epic, unhurried orchestral music",
     "good_tracks": [
+      "data/raw/fma_small/097/097285.mp3",
+      "data/raw/fma_small/108/108477.mp3",
       "data/raw/fma_small/156/900028.mp3"
     ]
   },
@@ -342,7 +383,10 @@
       "joyful", "comic", "festive"
     ],
     "vocals": "any",
+    "good_query": "fast dance-pop music with vocals",
     "good_tracks": [
+      "data/raw/fma_small/125/125315.mp3",
+      "data/raw/fma_small/114/114295.mp3",
       "data/raw/fma_small/156/900029.mp3"
     ]
   },
@@ -354,7 +398,10 @@
       "joyful", "festive"
     ],
     "vocals": "any",
+    "good_query": "Rhythmic retro pop music in the style of Michael Jackson.",
     "good_tracks": [
+      "data/raw/fma_small/055/055287.mp3",
+      "data/raw/fma_small/072/072476.mp3",
       "data/raw/fma_small/156/900030.mp3"
     ]
   }
