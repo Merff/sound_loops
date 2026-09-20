@@ -1,0 +1,735 @@
+{
+  "timestamp": "2026-09-20T13:21:03.663032+00:00",
+  "commit": "56840b8",
+  "model": "qwen3-vl:4b-instruct",
+  "prompt_version": "v8",
+  "temperature": 0.0,
+  "search_depth": 500,
+  "use_filters": true,
+  "use_rerank": true,
+  "use_agent": false,
+  "loops": [
+    {
+      "loop": "data/loops/loop-1.mp4",
+      "setting_correct": false,
+      "predicted_setting": "performance",
+      "true_setting": "urban",
+      "mood_overlap": 0.0,
+      "predicted_mood": [
+        "festive",
+        "triumphant"
+      ],
+      "true_mood": [
+        "epic"
+      ],
+      "music_query": "fast triumphant electronic with driving synths and punchy percussion",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": null,
+      "relaxed_filters": [],
+      "rerank_reasoning": "Highest BPM (129) and triumphant/festive mood align best with the fast motion and celebratory setting. Despite slightly lower similarity score, the tempo and emotional tone are most suitable for a high-energy performance scene.",
+      "queries": [],
+      "tool_calls_made": 0,
+      "fallback_used": 0
+    },
+    {
+      "loop": "data/loops/loop-2.mp4",
+      "setting_correct": false,
+      "predicted_setting": "performance",
+      "true_setting": "domestic",
+      "mood_overlap": 0.0,
+      "predicted_mood": [
+        "tragic",
+        "epic"
+      ],
+      "true_mood": [
+        "tense"
+      ],
+      "music_query": "chaotic epic electronic with pounding drums and distorted synths",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": null,
+      "relaxed_filters": [],
+      "rerank_reasoning": "‘Revenge’ best matches the scene’s tragic, epic, chaotic mood with its 161 BPM and instrumental strings, which convey intensity and motion. Its high similarity (0.380) and epic tone align well with the performance’s emotional and kinetic energy.",
+      "queries": [],
+      "tool_calls_made": 0,
+      "fallback_used": 0
+    },
+    {
+      "loop": "data/loops/loop-3.mp4",
+      "setting_correct": true,
+      "predicted_setting": "nature",
+      "true_setting": "nature",
+      "mood_overlap": 0.0,
+      "predicted_mood": [
+        "calm"
+      ],
+      "true_mood": [
+        "melancholic",
+        "dreamy"
+      ],
+      "music_query": "fast calm electronic with flowing synths and gentle percussion",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": 52,
+      "relaxed_filters": [],
+      "rerank_reasoning": "‘Crystal Echoes’ best matches the scene’s calm mood and fast motion with its 123 BPM, instrumental synth pads, and dreamy melancholic tone — offering a serene, nature-inspired rhythm without vocal distraction.",
+      "queries": [],
+      "tool_calls_made": 0,
+      "fallback_used": 0
+    },
+    {
+      "loop": "data/loops/loop-4.mp4",
+      "setting_correct": false,
+      "predicted_setting": "combat",
+      "true_setting": "scifi_fantasy",
+      "mood_overlap": 0.5,
+      "predicted_mood": [
+        "tragic"
+      ],
+      "true_mood": [
+        "nostalgic",
+        "tragic"
+      ],
+      "music_query": "chaotic tragic electronic with glitchy synths and pounding drum machines",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": 42,
+      "relaxed_filters": [],
+      "rerank_reasoning": "Despite the scene being tragic and chaotic, candidate 1's aggressive, tense, and eerie mood aligns better with combat intensity, and its 136 BPM tempo provides energetic motion. The instrumental vocals and electronic strings suit a dramatic, chaotic battlefield atmosphere, making it the most fitting despite lower similarity score.",
+      "queries": [],
+      "tool_calls_made": 0,
+      "fallback_used": 0
+    },
+    {
+      "loop": "data/loops/loop-5.mp4",
+      "setting_correct": true,
+      "predicted_setting": "performance",
+      "true_setting": "performance",
+      "mood_overlap": 0.0,
+      "predicted_mood": [
+        "eerie"
+      ],
+      "true_mood": [
+        "comic"
+      ],
+      "music_query": "eerie ambient electronic with glitchy synths and slow pulsing bass",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": null,
+      "relaxed_filters": [],
+      "rerank_reasoning": "‘Deeper’ best matches the scene’s eerie mood and moderate motion with its 81 BPM, instrumental synth pads, and tense-dreamy atmosphere — a close second in similarity (0.470) and a perfect fit for the setting.",
+      "queries": [],
+      "tool_calls_made": 0,
+      "fallback_used": 0
+    },
+    {
+      "loop": "data/loops/loop-6.mp4",
+      "setting_correct": true,
+      "predicted_setting": "nature",
+      "true_setting": "nature",
+      "mood_overlap": 0.3333333333333333,
+      "predicted_mood": [
+        "joyful"
+      ],
+      "true_mood": [
+        "joyful",
+        "nostalgic",
+        "dreamy"
+      ],
+      "music_query": "fast joyful electronic with driving synths and punchy percussion",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": null,
+      "relaxed_filters": [],
+      "rerank_reasoning": "‘Cries Of Your Love’ best matches the joyful, chaotic motion vibe with its 117 BPM and instrumental hip-hop/electronic energy, while still being close enough to the scene’s mood via its comic/dreamy joyful tags. The higher tempo and genre fit better than the slower or more romantic options.",
+      "queries": [],
+      "tool_calls_made": 0,
+      "fallback_used": 0
+    },
+    {
+      "loop": "data/loops/loop-7.mp4",
+      "setting_correct": false,
+      "predicted_setting": "performance",
+      "true_setting": "domestic",
+      "mood_overlap": 0.0,
+      "predicted_mood": [
+        "festive",
+        "tragic"
+      ],
+      "true_mood": [
+        "nostalgic",
+        "comic",
+        "dreamy"
+      ],
+      "music_query": "festive tragic electronic with haunting synths and pulsing drum machines",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": null,
+      "relaxed_filters": [],
+      "rerank_reasoning": "Faithless matches the festive-tragic mood with its melancholic yet dreamy vibe, and despite being 123 BPM (slightly faster), it offers emotional depth and instrumental vocals that suit a static, performance-based scene. Its similarity score (0.446) is close to the others, but its mood tags align best with the scene’s duality.",
+      "queries": [],
+      "tool_calls_made": 0,
+      "fallback_used": 0
+    },
+    {
+      "loop": "data/loops/loop-8.mp4",
+      "setting_correct": true,
+      "predicted_setting": "combat",
+      "true_setting": "combat",
+      "mood_overlap": 1.0,
+      "predicted_mood": [
+        "epic",
+        "tense"
+      ],
+      "true_mood": [
+        "epic",
+        "tense"
+      ],
+      "music_query": "epic tense electronic with driving synths and pulsing drum machines",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": 41,
+      "relaxed_filters": [],
+      "rerank_reasoning": "The track '85s' matches the scene’s need for a tense, motion-moderate combat atmosphere with its 86 BPM tempo and instrumental, tense-aggressive mood — while still being close enough to the query (similarity 0.450) to avoid being too mismatched. Its electronic synth pads add an epic, cinematic quality without overpowering the scene.",
+      "queries": [],
+      "tool_calls_made": 0,
+      "fallback_used": 0
+    },
+    {
+      "loop": "data/loops/loop-9.mp4",
+      "setting_correct": false,
+      "predicted_setting": "combat",
+      "true_setting": "abstract",
+      "mood_overlap": 0.5,
+      "predicted_mood": [
+        "aggressive"
+      ],
+      "true_mood": [
+        "epic",
+        "aggressive"
+      ],
+      "music_query": "aggressive electronic with heavy bass and pulsing synth rhythms",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": null,
+      "relaxed_filters": [],
+      "rerank_reasoning": "Despite the scene calling for 'slow motion', the 129 BPM tempo of 'Heroic Hexa Epic' provides a driving, aggressive pulse that matches the combat mood, while its instrumental, tense, and aggressive vibe aligns with the setting. Its higher similarity score (0.505) further supports its suitability over the slower BPM options.",
+      "queries": [],
+      "tool_calls_made": 0,
+      "fallback_used": 0
+    },
+    {
+      "loop": "data/loops/loop-10.mp4",
+      "setting_correct": true,
+      "predicted_setting": "urban",
+      "true_setting": "urban",
+      "mood_overlap": 0.5,
+      "predicted_mood": [
+        "tense",
+        "aggressive"
+      ],
+      "true_mood": [
+        "tense"
+      ],
+      "music_query": "aggressive electronic with driving synths and sharp percussion",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": null,
+      "relaxed_filters": [],
+      "rerank_reasoning": "Matches the scene’s tense, aggressive mood and moderate motion with 129 BPM, and has high similarity (0.503) while being instrumental — ideal for an urban, action-oriented setting without vocal distraction.",
+      "queries": [],
+      "tool_calls_made": 0,
+      "fallback_used": 0
+    },
+    {
+      "loop": "data/loops/loop-11.mp4",
+      "setting_correct": true,
+      "predicted_setting": "urban",
+      "true_setting": "urban",
+      "mood_overlap": 1.0,
+      "predicted_mood": [
+        "comic"
+      ],
+      "true_mood": [
+        "comic"
+      ],
+      "music_query": "light-hearted urban pop with playful synth melodies and steady beat",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": 280,
+      "relaxed_filters": [],
+      "rerank_reasoning": "Baby Blue has a slower tempo (112 BPM) and instrumental vocals, fitting the slow-motion, comic urban mood. Its calm and joyful mood contrasts with melancholic options, making it more suitable for a lighthearted, comic setting.",
+      "queries": [],
+      "tool_calls_made": 0,
+      "fallback_used": 0
+    },
+    {
+      "loop": "data/loops/loop-12.mp4",
+      "setting_correct": false,
+      "predicted_setting": "abstract",
+      "true_setting": "nature",
+      "mood_overlap": 0.3333333333333333,
+      "predicted_mood": [
+        "tragic",
+        "melancholic"
+      ],
+      "true_mood": [
+        "melancholic",
+        "dreamy"
+      ],
+      "music_query": "slow melancholic instrumental with haunting synth pads and distant ambient textures",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": 43,
+      "relaxed_filters": [],
+      "rerank_reasoning": "‘Open Cab’ best matches the tragic, melancholic mood and static motion with its slow, dreamy, electronic pads and instrumental vocals. Its 117 BPM offers a steady, contemplative pace, and its similarity score (0.448) is highest among the options, making it the most contextually aligned choice.",
+      "queries": [],
+      "tool_calls_made": 0,
+      "fallback_used": 0
+    },
+    {
+      "loop": "data/loops/loop-13.mp4",
+      "setting_correct": true,
+      "predicted_setting": "urban",
+      "true_setting": "urban",
+      "mood_overlap": 0.25,
+      "predicted_mood": [
+        "joyful",
+        "triumphant"
+      ],
+      "true_mood": [
+        "joyful",
+        "nostalgic",
+        "dreamy"
+      ],
+      "music_query": "fast joyful electronic with driving synths and punchy drum machines",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": 9,
+      "relaxed_filters": [],
+      "rerank_reasoning": "Fifth World matches the scene’s joyful, triumphant mood and fast motion with its 99 BPM tempo and instrumental hip-hop/electronic vibe. Its high similarity score (0.505) and comic-triumphant energy make it the most fitting choice among the options.",
+      "queries": [],
+      "tool_calls_made": 0,
+      "fallback_used": 0
+    },
+    {
+      "loop": "data/loops/loop-14.mp4",
+      "setting_correct": false,
+      "predicted_setting": "performance",
+      "true_setting": "urban",
+      "mood_overlap": 0.25,
+      "predicted_mood": [
+        "festive",
+        "eerie"
+      ],
+      "true_mood": [
+        "romantic",
+        "dreamy",
+        "festive"
+      ],
+      "music_query": "fast eerie electronic with glitchy synths and pulsing drum machines",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": 458,
+      "relaxed_filters": [],
+      "rerank_reasoning": "The track 'Eu Octa 7 8 14bounce' best matches the scene’s festive, eerie, fast-motion vibe with its 129 BPM, eerie mood, and instrumental electronic synth pads — while also having the highest similarity score (0.476) among the options. Its experimental, aggressive energy complements the dynamic, unsettling atmosphere of a performance.",
+      "queries": [],
+      "tool_calls_made": 0,
+      "fallback_used": 0
+    },
+    {
+      "loop": "data/loops/loop-15.mp4",
+      "setting_correct": true,
+      "predicted_setting": "urban",
+      "true_setting": "urban",
+      "mood_overlap": 0.3333333333333333,
+      "predicted_mood": [
+        "tense",
+        "aggressive"
+      ],
+      "true_mood": [
+        "comic",
+        "tense"
+      ],
+      "music_query": "aggressive electronic with pulsing synths and heavy bass drums",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": null,
+      "relaxed_filters": [],
+      "rerank_reasoning": "‘To Survive’ best matches the tense, aggressive mood with its eerie, dreamy, and aggressive vibe, and its 112 BPM tempo supports slow-motion urban tension. Despite lower similarity, its mood and instrumental nature align more closely with the scene’s requirements than the others.",
+      "queries": [],
+      "tool_calls_made": 0,
+      "fallback_used": 0
+    },
+    {
+      "loop": "data/loops/loop-16.mp4",
+      "setting_correct": true,
+      "predicted_setting": "nightlife",
+      "true_setting": "nightlife",
+      "mood_overlap": 0.25,
+      "predicted_mood": [
+        "festive",
+        "tragic"
+      ],
+      "true_mood": [
+        "tense",
+        "joyful",
+        "festive"
+      ],
+      "music_query": "moderate festive tragic electronic with pulsing synths and driving percussion",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": null,
+      "relaxed_filters": [],
+      "rerank_reasoning": "Convalescence II: Love Again",
+      "queries": [],
+      "tool_calls_made": 0,
+      "fallback_used": 0
+    },
+    {
+      "loop": "data/loops/loop-17.mp4",
+      "setting_correct": true,
+      "predicted_setting": "nightlife",
+      "true_setting": "nightlife",
+      "mood_overlap": 0.0,
+      "predicted_mood": [
+        "festive"
+      ],
+      "true_mood": [
+        "joyful"
+      ],
+      "music_query": "fast festive electronic with bright synths and driving percussion",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": 49,
+      "relaxed_filters": [],
+      "rerank_reasoning": "‘Memories (ft. Lotta Rasva)’ has the highest similarity score (0.435) and fits the festive, fast-motion nightlife mood with 123 BPM, joyful energy, and instrumental vocals — ideal for a vibrant, energetic scene.",
+      "queries": [],
+      "tool_calls_made": 0,
+      "fallback_used": 0
+    },
+    {
+      "loop": "data/loops/loop-18.mp4",
+      "setting_correct": true,
+      "predicted_setting": "urban",
+      "true_setting": "urban",
+      "mood_overlap": 0.25,
+      "predicted_mood": [
+        "comic",
+        "festive"
+      ],
+      "true_mood": [
+        "melancholic",
+        "comic",
+        "dreamy"
+      ],
+      "music_query": "moderate festive pop with bright synths and playful percussion",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": null,
+      "relaxed_filters": [],
+      "rerank_reasoning": "The track 'It's the end of the world... shhh don't tell the kids' matches the comic, festive mood with its joyful, dreamy vibe and high BPM (123), suggesting energetic motion. Its instrumental hip-hop/electronic style fits an urban setting without vocals, and its similarity score (0.442) is competitive with the others, making it the best fit for the scene’s tone and pacing.",
+      "queries": [],
+      "tool_calls_made": 0,
+      "fallback_used": 0
+    },
+    {
+      "loop": "data/loops/loop-19.mp4",
+      "setting_correct": true,
+      "predicted_setting": "urban",
+      "true_setting": "urban",
+      "mood_overlap": 0.0,
+      "predicted_mood": [
+        "aggressive"
+      ],
+      "true_mood": [
+        "tense",
+        "epic"
+      ],
+      "music_query": "aggressive hip-hop with heavy bass and sharp percussion",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": null,
+      "relaxed_filters": [],
+      "rerank_reasoning": "‘Everpresent Future’ at 96 BPM strikes a balance between moderate motion and aggressive mood, fitting the urban setting. Its instrumental, aggressive vibe aligns well with the scene’s tone, and its similarity score (0.418) is the highest among the top three, making it the most contextually appropriate choice.",
+      "queries": [],
+      "tool_calls_made": 0,
+      "fallback_used": 0
+    },
+    {
+      "loop": "data/loops/loop-20.mp4",
+      "setting_correct": false,
+      "predicted_setting": "domestic",
+      "true_setting": "sports",
+      "mood_overlap": 0.5,
+      "predicted_mood": [
+        "comic",
+        "joyful"
+      ],
+      "true_mood": [
+        "joyful"
+      ],
+      "music_query": "moderate joyful pop with bright synths and playful percussion",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": 14,
+      "relaxed_filters": [],
+      "rerank_reasoning": "‘gurgle’ has the highest similarity (0.470) and matches the scene’s joyful mood with its calm, dreamy, and joyful tags. Its 108 BPM tempo suggests moderate motion, and being instrumental fits a domestic, comic setting without distracting vocals.",
+      "queries": [],
+      "tool_calls_made": 0,
+      "fallback_used": 0
+    },
+    {
+      "loop": "data/loops/loop-21.mp4",
+      "setting_correct": true,
+      "predicted_setting": "performance",
+      "true_setting": "performance",
+      "mood_overlap": 0.5,
+      "predicted_mood": [
+        "comic"
+      ],
+      "true_mood": [
+        "tense",
+        "comic"
+      ],
+      "music_query": "moderate comic hip-hop with punchy beat and playful bass",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": 61,
+      "relaxed_filters": [],
+      "rerank_reasoning": "The track 'Number 1 Good Time Rap Song (A Mixx for '86)' best matches the comic mood and moderate motion with its 99 BPM and instrumental, comic-joyful vibe — while still being close enough to the query (similarity 0.393) to feel fitting without being too mismatched.",
+      "queries": [],
+      "tool_calls_made": 0,
+      "fallback_used": 0
+    },
+    {
+      "loop": "data/loops/loop-22.mp4",
+      "setting_correct": false,
+      "predicted_setting": "domestic",
+      "true_setting": "scifi_fantasy",
+      "mood_overlap": 0.0,
+      "predicted_mood": [
+        "tragic"
+      ],
+      "true_mood": [
+        "melancholic",
+        "epic"
+      ],
+      "music_query": "slow tragic instrumental with haunting piano and distant strings",
+      "hit_at_1": false,
+      "hit_at_5": true,
+      "best_rank": 2,
+      "relaxed_filters": [],
+      "rerank_reasoning": "BRPLE best matches the tragic mood and static motion with its slow, melancholic piano and strings, and instrumental vocals — fitting a domestic, somber scene. Its tempo (117 BPM) is steady and contemplative, aligning with the stillness of the setting.",
+      "queries": [],
+      "tool_calls_made": 0,
+      "fallback_used": 0
+    },
+    {
+      "loop": "data/loops/loop-23.mp4",
+      "setting_correct": true,
+      "predicted_setting": "sports",
+      "true_setting": "sports",
+      "mood_overlap": 0.25,
+      "predicted_mood": [
+        "epic",
+        "festive"
+      ],
+      "true_mood": [
+        "epic",
+        "triumphant",
+        "tense"
+      ],
+      "music_query": "moderate tempo epic electronic with driving synths and punchy percussion",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": null,
+      "relaxed_filters": [],
+      "rerank_reasoning": "Despite the scene being 'epic, festive', candidate 3 has a higher BPM (129) and a more energetic, driving feel than the others — fitting 'motion moderate' and 'epic' mood. Its 'eerie, tense, aggressive' mood is a stretch, but the tempo and instrumental nature align better with the scene’s dynamic than the calmer, dreamy options. The similarity score (0.493) is competitive, and the track’s intensity could be used creatively to evoke festivity and motion.",
+      "queries": [],
+      "tool_calls_made": 0,
+      "fallback_used": 0
+    },
+    {
+      "loop": "data/loops/loop-24.mp4",
+      "setting_correct": true,
+      "predicted_setting": "domestic",
+      "true_setting": "domestic",
+      "mood_overlap": 0.0,
+      "predicted_mood": [
+        "comic",
+        "festive"
+      ],
+      "true_mood": [
+        "joyful",
+        "triumphant"
+      ],
+      "music_query": "moderate festive pop with bright synths and playful percussion",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": 149,
+      "relaxed_filters": [],
+      "rerank_reasoning": "The track 'It's the end of the world... shhh don't tell the kids' has a playful, joyful mood and upbeat tempo (123 BPM), fitting the comic and festive tone of the domestic scene. Its instrumental, hip-hop/electronic vibe adds energy without being intrusive, and its high similarity score (0.442) confirms it’s a close match for the desired atmosphere.",
+      "queries": [],
+      "tool_calls_made": 0,
+      "fallback_used": 0
+    },
+    {
+      "loop": "data/loops/loop-25.mp4",
+      "setting_correct": false,
+      "predicted_setting": "performance",
+      "true_setting": "nightlife",
+      "mood_overlap": 0.3333333333333333,
+      "predicted_mood": [
+        "festive"
+      ],
+      "true_mood": [
+        "nostalgic",
+        "festive",
+        "melancholic"
+      ],
+      "music_query": "fast festive electronic with bright synths and driving percussion",
+      "hit_at_1": false,
+      "hit_at_5": true,
+      "best_rank": 2,
+      "relaxed_filters": [],
+      "rerank_reasoning": "‘Memories (ft. Lotta Rasva)’ has the highest similarity score (0.435) and fits the festive mood with a fast tempo (123 BPM), while its joyful, comic, festive mood aligns well with a performance scene. Although it has vocals, the instrumental tag suggests it’s suitable for a silent scene, and the energy matches ‘motion fast’.",
+      "queries": [],
+      "tool_calls_made": 0,
+      "fallback_used": 0
+    },
+    {
+      "loop": "data/loops/loop-26.mp4",
+      "setting_correct": true,
+      "predicted_setting": "nightlife",
+      "true_setting": "nightlife",
+      "mood_overlap": 0.0,
+      "predicted_mood": [
+        "festive",
+        "tragic"
+      ],
+      "true_mood": [
+        "calm",
+        "melancholic",
+        "dreamy"
+      ],
+      "music_query": "festive tragic electronic with pulsing synths and ambient percussion",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": 14,
+      "relaxed_filters": [],
+      "rerank_reasoning": "Despite the scene being festive, the tragic and motion-static mood aligns best with 'Convalescence II: Love Again' — its melancholic, dreamy tone and instrumental vocals create emotional depth without overwhelming motion, while the 92 BPM tempo suits a slow, atmospheric nightlife setting.",
+      "queries": [],
+      "tool_calls_made": 0,
+      "fallback_used": 0
+    },
+    {
+      "loop": "data/loops/loop-27.mp4",
+      "setting_correct": false,
+      "predicted_setting": "abstract",
+      "true_setting": "urban",
+      "mood_overlap": 0.0,
+      "predicted_mood": [
+        "tragic"
+      ],
+      "true_mood": [
+        "epic"
+      ],
+      "music_query": "fast tragic electronic with glitchy synths and pulsing bass",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": 107,
+      "relaxed_filters": [],
+      "rerank_reasoning": "Despite the scene being 'tragic' and 'fast', 'Heroic Hexa Epic' at 129 BPM offers the highest tempo match and fits the 'eerie, tense, aggressive' mood — which can imply a tragic, high-stakes motion. Its instrumental, electronic, synth-heavy style supports abstract visuals without vocals, making it the most suitable among the options.",
+      "queries": [],
+      "tool_calls_made": 0,
+      "fallback_used": 0
+    },
+    {
+      "loop": "data/loops/loop-28.mp4",
+      "setting_correct": false,
+      "predicted_setting": "combat",
+      "true_setting": "abstract",
+      "mood_overlap": 0.25,
+      "predicted_mood": [
+        "aggressive",
+        "dreamy"
+      ],
+      "true_mood": [
+        "nostalgic",
+        "epic",
+        "dreamy"
+      ],
+      "music_query": "aggressive electronic with dreamy synth textures and pulsing bass",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": 264,
+      "relaxed_filters": [],
+      "rerank_reasoning": "Turbulence matches the scene’s dreamy, aggressive mood with its 136 BPM and experimental synth pads, while its eerie-tense vibe adds depth to the combat setting — balancing motion and atmosphere better than the others.",
+      "queries": [],
+      "tool_calls_made": 0,
+      "fallback_used": 0
+    },
+    {
+      "loop": "data/loops/loop-29.mp4",
+      "setting_correct": false,
+      "predicted_setting": "nightlife",
+      "true_setting": "performance",
+      "mood_overlap": 0.3333333333333333,
+      "predicted_mood": [
+        "festive"
+      ],
+      "true_mood": [
+        "joyful",
+        "comic",
+        "festive"
+      ],
+      "music_query": "moderate festive electronic with bright synths and driving percussion",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": 23,
+      "relaxed_filters": [],
+      "rerank_reasoning": "Despite the scene being festive, 'In Sight' at 96 BPM offers a moderate tempo suitable for nightlife motion, and its calm/dreamy mood subtly supports a festive, atmospheric vibe. Its instrumental, electronic synth pads align with nightlife aesthetics, and its 0.408 similarity score is highest among candidates, making it the best fit for balancing mood, tempo, and context.",
+      "queries": [],
+      "tool_calls_made": 0,
+      "fallback_used": 0
+    },
+    {
+      "loop": "data/loops/loop-30.mp4",
+      "setting_correct": false,
+      "predicted_setting": "horror",
+      "true_setting": "urban",
+      "mood_overlap": 0.3333333333333333,
+      "predicted_mood": [
+        "tragic",
+        "festive"
+      ],
+      "true_mood": [
+        "joyful",
+        "festive"
+      ],
+      "music_query": "slow tragic festive electronic with haunting synths and atmospheric pads",
+      "hit_at_1": false,
+      "hit_at_5": false,
+      "best_rank": null,
+      "relaxed_filters": [],
+      "rerank_reasoning": "Convalescence II: Love Again",
+      "queries": [],
+      "tool_calls_made": 0,
+      "fallback_used": 0
+    }
+  ],
+  "aggregates": {
+    "setting_accuracy": 0.5333333333333333,
+    "mean_mood_overlap": 0.26666666666666666,
+    "hit_at_1_rate": 0.0,
+    "hit_at_5_rate": 0.06666666666666667,
+    "mean_best_rank": 94.70588235294117,
+    "not_found_count": 13,
+    "mean_penalized_rank": 270.3333333333333,
+    "loops_needing_relaxation": 0,
+    "agent_tool_calls_total": 0,
+    "agent_fallback_used_total": 0
+  }
+}

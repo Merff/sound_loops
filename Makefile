@@ -75,9 +75,9 @@ match-loop:
 ui:
 	uv run sound-loops ui
 
-# Прогнать эвал по всему evals/dataset.json, напечатать метрики и сохранить прогон.
-# Конфигурация (итерация 4): make eval-run FILTERS=1 RERANK=1
-# Первый проход графа-агента (итерация 5, несовместимо с FILTERS/RERANK): make eval-run AGENT=1
+# Прогнать эвал по всему evals/dataset.json, напечатать метрики и сохранить прогон. (затратно)
+# Конфигурация: make eval-run FILTERS=1 RERANK=1
+# Первый проход графа-агента (несовместимо с FILTERS/RERANK): make eval-run AGENT=1
 eval-run:
 	uv run sound-loops eval-run $(if $(FILTERS),--filters,) $(if $(RERANK),--rerank,) $(if $(AGENT),--agent,)
 
