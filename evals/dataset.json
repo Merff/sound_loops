@@ -72,8 +72,10 @@
       "joyful", "nostalgic", "dreamy"
     ],
     "vocals": "any",
-    "good_query": "",
+    "good_query": "nostalgic music tinged with a gentle sadness",
     "good_tracks": [
+      "data/raw/fma_small/126/126189.mp3",
+      "data/raw/fma_small/130/130955.mp3",
       "data/raw/fma_small/156/900006.mp3"
     ]
   },
@@ -85,8 +87,9 @@
       "nostalgic", "comic", "dreamy"
     ],
     "vocals": "any",
-    "good_query": "",
+    "good_query": "melancholic piano song",
     "good_tracks": [
+      "data/raw/fma_small/087/087099.mp3",
       "data/raw/fma_small/156/900007.mp3"
     ]
   },
@@ -98,8 +101,10 @@
       "epic", "tense"
     ],
     "vocals": "any",
-    "good_query": "",
+    "good_query": "Music/song for an epic space battle",
     "good_tracks": [
+      "data/raw/fma_small/116/116759.mp3",
+      "data/raw/fma_small/108/108477.mp3",
       "data/raw/fma_small/156/900008.mp3"
     ]
   },
@@ -111,8 +116,10 @@
       "epic", "aggressive"
     ],
     "vocals": "instrumental",
-    "good_query": "",
+    "good_query": "fast music like a burst of machine-gun fire",
     "good_tracks": [
+      "data/raw/fma_small/133/133025.mp3",
+      "data/raw/fma_small/112/112769.mp3",
       "data/raw/fma_small/156/900009.mp3"
     ]
   },
@@ -124,8 +131,9 @@
       "tense"
     ],
     "vocals": "instrumental",
-    "good_query": "",
+    "good_query": "brass band march",
     "good_tracks": [
+      "data/raw/fma_small/098/098031.mp3",
       "data/raw/fma_small/156/900010.mp3"
     ]
   },
@@ -137,8 +145,10 @@
       "comic"
     ],
     "vocals": "any",
-    "good_query": "",
+    "good_query": "fast hip-hop track",
     "good_tracks": [
+      "data/raw/fma_small/098/098577.mp3",
+      "data/raw/fma_small/147/147267.mp3",
       "data/raw/fma_small/156/900011.mp3"
     ]
   },
@@ -150,8 +160,10 @@
       "melancholic", "dreamy"
     ],
     "vocals": "instrumental",
-    "good_query": "",
+    "good_query": "a slow, dreamy music/song",
     "good_tracks": [
+      "data/raw/fma_small/148/148603.mp3",
+      "data/raw/fma_small/127/127865.mp3",
       "data/raw/fma_small/156/900012.mp3"
     ]
   },
@@ -163,8 +175,10 @@
       "joyful", "nostalgic", "dreamy"
     ],
     "vocals": "any",
-    "good_query": "",
+    "good_query": "Upbeat, energetic retro-pop song",
     "good_tracks": [
+      "data/raw/fma_small/064/064006.mp3",
+      "data/raw/fma_small/055/055285.mp3",
       "data/raw/fma_small/156/900013.mp3"
     ]
   },
@@ -176,9 +190,9 @@
       "romantic", "dreamy", "festive"
     ],
     "vocals": "any",
-    "good_query": "",
+    "good_query": "fast electro dance music",
     "good_tracks": [
-
+      "data/raw/fma_small/069/069194.mp3"
     ]
   },
   {
@@ -202,8 +216,10 @@
       "tense", "joyful", "festive"
     ],
     "vocals": "vocals_ok",
-    "good_query": "",
+    "good_query": "slow, rhythmic music that builds tension",
     "good_tracks": [
+      "data/raw/fma_small/124/124873.mp3",
+      "data/raw/fma_small/116/116759.mp3",
       "data/raw/fma_small/156/900016.mp3"
     ]
   },
@@ -215,8 +231,10 @@
       "joyful"
     ],
     "vocals": "any",
-    "good_query": "",
+    "good_query": "Energetic disco dance",
     "good_tracks": [
+      "data/raw/fma_small/064/064331.mp3",
+      "data/raw/fma_small/069/069205.mp3",
       "data/raw/fma_small/156/900017.mp3"
     ]
   },
@@ -228,8 +246,9 @@
       "melancholic", "comic", "dreamy"
     ],
     "vocals": "instrumental",
-    "good_query": "",
+    "good_query": "sad piano music",
     "good_tracks": [
+      "data/raw/fma_small/133/133971.mp3",
       "data/raw/fma_small/156/900018.mp3"
     ]
   },
@@ -241,8 +260,10 @@
       "tense", "epic"
     ],
     "vocals": "vocals_ok",
-    "good_query": "",
+    "good_query": "fast alternative rock",
     "good_tracks": [
+      "data/raw/fma_small/122/122082.mp3",
+      "data/raw/fma_small/099/099345.mp3",
       "data/raw/fma_small/156/900019.mp3"
     ]
   },
@@ -254,8 +275,10 @@
       "joyful"
     ],
     "vocals": "any",
-    "good_query": "",
+    "good_query": "dance pop/workout music",
     "good_tracks": [
+      "data/raw/fma_small/114/114295.mp3",
+      "data/raw/fma_small/149/149141.mp3",
       "data/raw/fma_small/156/900020.mp3"
     ]
   },
