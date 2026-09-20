@@ -89,11 +89,7 @@ def extract_audio_segment(
     fade_seconds: float,
     output_path: Path,
 ) -> None:
-    """Вырезать отрезок аудио из трека с короткими фейдами на краях.
-
-    Фейды нужны, иначе на срезе слышен щелчок независимо от того, насколько
-    удачно выбрана музыка.
-    """
+    """Вырезать отрезок аудио из трека с короткими фейдами на краях."""
     fade = min(fade_seconds, duration_seconds / 2)
     fade_out_start = max(duration_seconds - fade, 0.0)
     audio_filter = (
