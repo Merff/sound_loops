@@ -147,9 +147,6 @@ def test_search_tracks_filtered_applies_tempo_range_without_relaxation(db_conn):
 
 
 def test_search_tracks_filtered_no_relaxation_on_empty_result(db_conn):
-    """Пустая выдача остаётся пустой — послаблений фильтров нет,
-    слишком строгий фильтр просто возвращает пусто, агент сам решает,
-    ослаблять ли параметры следующим вызовом инструмента."""
     query = _basis(0)
     _insert_track_with_attrs(db_conn, "out_of_range.mp3", query, 300.0, {"instrumental": 0.9, "with_vocals": 0.1})
 

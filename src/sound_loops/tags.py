@@ -9,8 +9,6 @@ import numpy as np
 
 from sound_loops.embeddings import Embedder, normalize
 
-# Ключи совпадают со значениями vlm.Vocals — гибридный поиск (search.py)
-# сравнивает эти два числа напрямую как SQL-фильтр по вокалу.
 VOCAL_PHRASES = {
     "instrumental": "instrumental music with no vocals",
     "with_vocals": "a song with singing voice",

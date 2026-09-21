@@ -33,8 +33,7 @@
 [iteration-3](docs/sound_loops-iteration-3.md) (эвал-харнесс, baseline в
 README) ·
 [iteration-4](docs/sound_loops-iteration-4.md) (RAG: атрибуты треков,
-фильтры, реранк — фильтры и лестница послаблений с тех пор удалены как
-не давшие эффекта, см. README) ·
+фильтры, реранк) ·
 [iteration-5](docs/sound_loops-iteration-5.md) (граф-агент + UI).
 
 ## Команды
