@@ -1,8 +1,4 @@
-"""Тонкие обёртки над ffmpeg/ffprobe через subprocess.
-
-Команды собираются как плоские списки строк, которые остаются читаемыми и
-копируемыми в терминал как есть — никаких питоновских DSL поверх ffmpeg.
-"""
+"""Тонкие обёртки над ffmpeg/ffprobe через subprocess."""
 
 from __future__ import annotations
 
@@ -19,7 +15,6 @@ class FfmpegError(RuntimeError):
 
 
 def run(cmd: list[str]) -> str:
-    """Выполнить команду, вернуть stdout. Бросить FfmpegError с текстом stderr при неудаче."""
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
         pretty_cmd = " ".join(cmd)
@@ -40,7 +35,6 @@ class ProbeResult:
 
 
 def probe(path: Path) -> ProbeResult:
-    """Прочитать метаданные медиафайла через ffprobe."""
     cmd = [
         "ffprobe",
         "-v", "error",
@@ -111,7 +105,6 @@ def extract_audio_segment(
 
 def decode_audio_mono(path: Path, sample_rate: int, max_seconds: float | None = None) -> np.ndarray:
     """Декодировать аудиодорожку в моно float32 PCM заданной частоты дискретизации.
-
     max_seconds (если задан) обрезает с начала файла — ffmpeg читает только
     нужный кусок, до полной длины не декодирует.
     """
@@ -141,16 +134,7 @@ def extract_frames(
     count: int,
     max_side: int,
 ) -> list[bytes]:
-    """count кадров, равномерно по длительности лупа, JPEG-байты в памяти.
-
-    Кадры берутся из середин count равных отрезков — не из точных 0 и
-    duration_seconds, чтобы не упереться в последний неполный кадр на
-    границе файла. Уменьшение до max_side по длинной стороне сокращает
-    число визуальных токенов на шаге VLM (см. docs/sound_loops-iteration-2.md).
-    Один вызов ffmpeg на кадр — вместо одной команды с fps-фильтром,
-    чтобы результат был проще прочитать из stdout, не разбирая склеенный
-    JPEG-поток по маркерам.
-    """
+    """count кадров, равномерно по длительности лупа, JPEG-байты в памяти."""
     frames = []
     for i in range(count):
         timestamp = (i + 0.5) * duration_seconds / count
@@ -176,12 +160,7 @@ def extract_frames(
 
 
 def decode_frames_gray(path: Path, sample_fps: float, size: int) -> np.ndarray:
-    """Задекодировать видео в grayscale-кадры size x size с частотой sample_fps.
-
-    Один вызов ffmpeg на весь клип (в отличие от extract_frames, который
-    вызывается по кадру) — для алгоритмической оценки движения нужны
-    десятки кадров, а не единицы, как для VLM (см. motion.py).
-    """
+    """Задекодировать видео в grayscale-кадры size x size с частотой sample_fps."""
     cmd = [
         "ffmpeg", "-v", "error",
         "-i", str(path),
@@ -205,13 +184,7 @@ def decode_frames_gray(path: Path, sample_fps: float, size: int) -> np.ndarray:
 
 def mux_loop_with_audio(loop_path: Path, audio_path: Path, output_path: Path, repeat_count: int = 1) -> None:
     """Склеить видео-луп (повторённый repeat_count раз) с готовым аудио без
-    перекодирования видео. -stream_loop N повторяет вход N+1 раз, отсюда
-    repeat_count - 1; проверено вручную, что copy-кодек не даёт склеек и
-    дублей/пропусков кадров на границах повторов.
-
-    Итоговую длительность определяет видео: -shortest обрезает лишнее аудио,
-    если оно почему-то оказалось длиннее.
-    """
+    перекодирования видео. -stream_loop N повторяет вход N+1 раз"""
     cmd = [
         "ffmpeg", "-y",
         "-stream_loop", str(repeat_count - 1),

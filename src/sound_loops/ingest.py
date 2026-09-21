@@ -50,7 +50,7 @@ class IngestReport:
 
 
 def loop_skip_reason(result: ProbeResult, settings: Settings) -> str | None:
-    """Проверить, годится ли пробированный файл в лупы. None — годится."""
+    """Проверить, годится ли пробированный файл в лупы"""
     if result.has_audio:
         return "у лупа есть аудиодорожка, ожидался немой файл"
     if not (settings.min_loop_seconds <= result.duration_seconds <= settings.max_loop_seconds):

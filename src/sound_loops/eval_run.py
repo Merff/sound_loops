@@ -1,12 +1,11 @@
-"""Команда eval-run (итерация 3, docs/sound_loops-iteration-3.md; конфигурации
-фильтров/переранжирования — итерация 4, docs/sound_loops-iteration-4.md):
+"""Команда eval-run:
 прогон пайплайна по размеченному набору (evals/dataset.json), метрики
 понимания сцены (шаг A) и поиска (шаг B + CLAP).
 
-Переиспользует analyze_loop (кеш шага A) и search_tracks/search_tracks_hybrid
+Переиспользует analyze_loop и search_tracks/search_tracks_hybrid
 как есть — не дублирует их логику и не пишет в renders (аудио не рендерит,
 для этого есть blind-eval). Температуру задаёт вызывающий код (CLI фиксирует
-0.0 для воспроизводимости, см. docs).
+0.0 для воспроизводимости).
 
 use_rerank реранжирует только топ-RERANK_POOL_SIZE (см. rerank.py) —
 hit@1 после этого отражает реальный выбор модели, а hit@5/best_rank
@@ -55,7 +54,7 @@ class LoopEvalResult(BaseModel):
     best_rank: int | None
     relaxed_filters: list[str] = []
     rerank_reasoning: str | None = None
-    # Только для use_agent=True (итерация 5): queries — 3 запроса узла plan,
+    # Только для use_agent=True: queries — 3 запроса узла plan,
     # tool_calls_made/fallback_used — надёжность вызова инструмента на этом лупе.
     queries: list[str] = []
     tool_calls_made: int = 0
@@ -69,16 +68,12 @@ class EvalAggregates(BaseModel):
     hit_at_5_rate: float
     mean_best_rank: float | None
     not_found_count: int
-    # best_rank усреднённый только по найденным лупам — конфигурации с
-    # разным числом "не найдено" через mean_best_rank сравнивать нечестно
-    # (выживаемость смещает среднее в пользу той, что больше отбросила,
-    # см. docs/sound_loops-iteration-4.md). mean_penalized_rank считает
-    # не найденное как search_depth и годится для сравнения конфигураций
+    # mean_penalized_rank считает не найденное как search_depth и годится для сравнения конфигураций
     # между собой — mean_best_rank оставлен для того, что реально нашлось.
     mean_penalized_rank: float
     # Сколько лупов потребовали хотя бы одного послабления фильтров (только
     # при use_filters=True) — частые послабления значат, что диапазоны
-    # заданы неверно или библиотека слишком мала, а не что код не работает.
+    # заданы неверно или библиотека слишком мала.
     loops_needing_relaxation: int = 0
     # Только при use_agent=True: сколько раз узел plan вызвал инструмент
     # сам и сколько раз сработал резервный путь — суммарно по всем лупам,
@@ -223,9 +218,7 @@ def _merge_agent_pools(plan_pools: list[dict]) -> list[str]:
     """Объединить кандидатов всех slot'ов агента в один ранжированный список
     путей — дедуп по треку (побеждает лучшая позиция), сортировка по
     сходству. Основа для hit@k агента: трек считается найденным, если он
-    попал в top-k хотя бы одного из 3 query (см. docs/sound_loops-iteration-5.md,
-    раздел «Эвалы» — решение сравнить конфигурации по объединению, а не по
-    первому query или трём метрикам по отдельности)."""
+    попал в top-k хотя бы одного из 3 query."""
     best: dict[int, tuple[float, str]] = {}
     for pool_info in plan_pools:
         for candidate in pool_info["candidates"]:
@@ -236,9 +229,7 @@ def _merge_agent_pools(plan_pools: list[dict]) -> list[str]:
 
 
 def _evaluate_loop_agent(graph, settings: Settings, entry: LoopAnnotation) -> LoopEvalResult:
-    """Первый проход графа-агента (analyze -> plan -> rerank, см.
-    agent_graph.py::build_eval_graph) — не дублирует его логику, как и
-    _evaluate_loop не дублирует match_once."""
+    """Первый проход графа-агента (analyze -> plan -> rerank) — не дублирует его логику."""
     state = graph.invoke(initial_state(entry.loop, settings))
     scene = SceneDescription.model_validate(state["scene"])
     queries = [pool["query"] for pool in state["plan_pools"]]
@@ -294,9 +285,6 @@ def run_eval(
         raise ValueError("набор разметки пуст — нечего прогонять")
 
     if use_agent:
-        # Пул поиска инструмента шире, чем в продакшене (settings.agent_search_pool_size,
-        # см. config.py) — иначе hit@k агента считался бы по пулу в разы
-        # меньше topN остальных конфигураций и был бы с ними несравним.
         eval_settings = settings.model_copy(update={"agent_search_pool_size": settings.eval_search_depth})
         graph = build_eval_graph(conn, embedder, analyzer, eval_settings)
         loops = [_evaluate_loop_agent(graph, eval_settings, entry) for entry in dataset]
@@ -328,9 +316,6 @@ def save_run(run: EvalRun, runs_dir: Path) -> Path:
 
 
 def load_run(path: Path) -> EvalRun:
-    """Прогоны, сохранённые до появления mean_penalized_rank (итерация 4),
-    не переписываем задним числом — досчитываем поле при загрузке, чтобы
-    старые файлы (и baseline в README) не стали нечитаемыми."""
     raw = json.loads(path.read_text())
     aggregates = raw.get("aggregates", {})
     if "mean_penalized_rank" not in aggregates:

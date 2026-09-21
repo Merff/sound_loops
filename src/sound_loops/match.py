@@ -1,14 +1,7 @@
-"""Подбор и наложение трека под уже проанализированный луп (шаги B/C/D
-итерации 2, docs/sound_loops-iteration-2.md): музыкальный запрос ->
-CLAP-поиск -> сборка превью. use_filters/use_rerank (итерация 4,
-docs/sound_loops-iteration-4.md) переключают гибридный поиск и
+"""Подбор и наложение трека под уже проанализированный луп: музыкальный запрос ->
+CLAP-поиск -> сборка превью. use_filters/use_rerank переключают гибридный поиск и
 переранжирование поверх того же пайплайна — конфигурация параметром
 вызова, не правкой кода.
-
-Шаг A — отдельная команда `analyze` (analysis.py), здесь не запускается:
-требуется, чтобы анализ уже лежал в video_analyses. Рендер помечается
-ссылкой на video_analyses (analysis_id) и music_query — по ним видно, что
-превью собрано этой цепочкой, а не случайным baseline'ом итерации 0.
 """
 
 from __future__ import annotations
@@ -48,10 +41,8 @@ def manual_match(
     query: str,
     top_n: int,
 ) -> ManualMatchResult:
-    """Прямой текстовый запрос пользователя вместо VLM-цепочки (analyze не
-    нужен) -> top_n треков CLAP-поиском -> рендер каждого. analysis_id
-    остаётся NULL (не VLM-цепочка), music_query — текст пользователя, этим
-    отличается от random baseline'а итерации 0 (там оба поля NULL)."""
+    """Прямой текстовый запрос пользователя вместо VLM-цепочки -> top_n треков CLAP-поиском -> рендер каждого. analysis_id
+    остаётся NULL, music_query — текст пользователя"""
     loop = get_loop_by_path(conn, loop_path, settings)
     candidates = search_tracks(conn, embedder, query, top_n, min_duration_seconds=loop.duration_seconds)
 

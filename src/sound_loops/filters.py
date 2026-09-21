@@ -1,12 +1,10 @@
-"""Целевые атрибуты для гибридного поиска (итерация 4,
-docs/sound_loops-iteration-4.md): диапазон темпа из motion лупа и лестница
+"""Целевые атрибуты для гибридного поиска: диапазон темпа из motion лупа и лестница
 послаблений фильтров.
 
 Границы MOTION_TEMPO_RANGES откалиброваны по tempo_bpm настоящих
 good_tracks (evals/dataset.json), не взяты на глаз — ручная разметка
 tempo=slow/mid/fast сама почти не разделяется по измеренному BPM, так
-что диапазоны широкие и заметно перекрываются (см. README, раздел
-«Гибридный поиск и переранжирование», за историей калибровки).
+что диапазоны широкие и заметно перекрываются.
 """
 
 from __future__ import annotations
@@ -28,10 +26,9 @@ MOTION_TEMPO_RANGES: dict[Motion, TempoRange] = {
 # Множитель расширения диапазона темпа на первой ступени лестницы послаблений.
 TEMPO_RELAXATION_FACTOR = 1.5
 
-# Порог "уверенности" тега вокала (search.py::_hybrid_where): трек с
+# Порог "уверенности" тега вокала: трек с
 # |with_vocals - instrumental| меньше этого числа фильтр по вокалу не
-# трогает, даже если формально "не та" метка выше — такой зазор шумный,
-# не решение. Значение — медиана этого зазора по всей библиотеке.
+# трогает, значение — медиана этого зазора по всей библиотеке.
 VOCALS_CONFIDENCE_MARGIN = 0.11
 
 
@@ -62,7 +59,7 @@ class FilterLevel:
 
 def relaxation_ladder(tempo_range: TempoRange, vocals: Vocals) -> list[FilterLevel]:
     """Уровни от самого строгого к полному отсутствию фильтров — в этом
-    порядке пробуются фильтры гибридного поиска (search.py)."""
+    порядке пробуются фильтры гибридного поиска."""
     return [
         FilterLevel(tempo_range, vocals, None),
         FilterLevel(widen_tempo_range(tempo_range), vocals, "расширен диапазон темпа"),
@@ -74,13 +71,7 @@ def relaxation_ladder(tempo_range: TempoRange, vocals: Vocals) -> list[FilterLev
 def run_relaxation_ladder[T](
     levels: Sequence[FilterLevel], attempt: Callable[[FilterLevel], list[T]]
 ) -> tuple[list[T], list[str]]:
-    """Пробовать уровни по порядку, пока attempt не вернёт непустой список.
-
-    Возвращает (результат, применённые_послабления) — action всех уровней
-    вплоть до успешного включительно. Последний уровень — без фильтров —
-    гарантирует непустую выдачу, если она вообще есть в базе (это
-    проверяет сам attempt/вызывающий код).
-    """
+    """Пробовать уровни по порядку, пока attempt не вернёт непустой список."""
     applied: list[str] = []
     for level in levels:
         if level.action is not None:

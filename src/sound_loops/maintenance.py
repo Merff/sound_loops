@@ -1,11 +1,4 @@
-"""Очистка накопленных рендеров/анализов — и в базе, и на диске.
-
-renders.analysis_id ссылается на video_analyses без ON DELETE CASCADE (см.
-migrations/0003), поэтому просто DELETE FROM video_analyses упадёт по
-внешнему ключу, если на анализы ещё есть рендеры. clear_analyses явно
-удаляет такие рендеры (и их файлы) первым шагом, а не полагается на
-скрытое поведение БД — тот же принцип, что и остальной сырой SQL в проекте.
-"""
+"""Очистка накопленных рендеров/анализов — и в базе, и на диске."""
 
 from __future__ import annotations
 
@@ -16,10 +9,7 @@ import psycopg
 
 
 def _delete_render_rows(conn: psycopg.Connection, where_sql: str) -> tuple[int, int, int]:
-    """Удалить строки renders, подходящие под where_sql, и их файлы с диска.
-
-    Вернуть (строк удалено, файлов удалено, файлов не найдено на диске).
-    """
+    """Удалить строки renders, подходящие под where_sql, и их файлы с диска."""
     rows = conn.execute(f"SELECT output_path FROM renders WHERE {where_sql}").fetchall()
 
     files_deleted = 0
@@ -74,9 +64,7 @@ class ClearAnalysesReport:
 
 
 def clear_analyses(conn: psycopg.Connection) -> ClearAnalysesReport:
-    """Удалить все video_analyses и рендеры, сделанные по ним (renders.analysis_id
-    IS NOT NULL) — из базы и файлы с диска. Рендеры случайного baseline'а
-    итерации 0 (analysis_id IS NULL) не трогает."""
+    """Удалить все video_analyses и рендеры, сделанные по ним (renders.analysis_id IS NOT NULL) — из базы и файлы с диска"""
     dependent_deleted, files_deleted, files_missing = _delete_render_rows(conn, "analysis_id IS NOT NULL")
     analyses_deleted = conn.execute("DELETE FROM video_analyses").rowcount
     conn.commit()
@@ -98,11 +86,7 @@ class CleanupSessionReport:
 
 
 def cleanup_session_renders(conn: psycopg.Connection, render_ids: list[int]) -> CleanupSessionReport:
-    """Вызывается по завершении сессии агента в UI (все круги пройдены или
-    пользователь не дал дальше обратную связь). rating='good' — оставить как
-    есть; rating='bad' — удалить только файл с диска, строку оставить (нужна
-    get_bad_rated_track_ids для постоянного исключения трека для этого лупа,
-    см. CLAUDE.md «Граф-агент»); NULL/'neutral' — удалить и файл, и строку."""
+    """Вызывается по завершении сессии агента в UI (все круги пройдены или пользователь не дал дальше обратную связь)"""
     if not render_ids:
         return CleanupSessionReport()
 

@@ -24,7 +24,7 @@ def _hub_cache_dir() -> Path:
 
 
 def ensure_offline_if_cached(checkpoint: str) -> None:
-    """Если чекпоинт уже скачан, выставить HF_HUB_OFFLINE=1 (не трогать явный выбор пользователя)."""
+    """Если чекпоинт уже скачан, выставить HF_HUB_OFFLINE=1"""
     if "HF_HUB_OFFLINE" in os.environ:
         return
     repo_dir = _hub_cache_dir() / f"models--{checkpoint.replace('/', '--')}"
