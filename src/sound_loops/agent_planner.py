@@ -1,10 +1,8 @@
-"""Узел plan (итерация 5, docs/sound_loops-iteration-5.md): поиск — не шаг
-пайплайна, а инструмент, который модель вызывает сама, пока не наберёт
+"""Узел plan: поиск — не шаг пайплайна, а инструмент, который модель вызывает сама, пока не наберёт
 settings.agent_slot_count разных запросов. Резервный путь (модель не
 вызвала инструмент) переиспользует уже проверенный compose_music_query
 (vlm.py) вместо разбора свободного текста ответа модели — парсинг текста
-хрупкий и именно этого мы избегаем в других местах проекта (см. CLAUDE.md
-про обратную связь), а не более честная имитация "запроса из ответа модели".
+хрупкий.
 
 Дедупликация треков МЕЖДУ слотами одного круга здесь не делается — это
 задача узла rerank (agent_graph.py), у которого есть все три пула сразу.
@@ -74,7 +72,7 @@ class ToolCallRecord:
 @dataclass(frozen=True)
 class PlanOutcome:
     slots: list[tuple[str, list[SearchResult]]]  # (query, кандидаты) — длина == agent_slot_count
-    tool_calls_made: int  # сколько раз модель САМА вызвала инструмент
+    tool_calls_made: int  # сколько раз модель сама вызвала инструмент
     fallback_used: int  # сколько раз сработал резервный путь (см. модуль docstring)
 
 
@@ -126,9 +124,7 @@ def plan_tracks(
             exclude_ids=exclude_track_ids,
         )
         if not results and (tempo_range is not None or vocals_arg is not None):
-            # Одноразовое снятие фильтров, если они дали пусто — не полноценная
-            # лестница послаблений (см. docstring модуля), просто чтобы не
-            # тратить ход модели на очевидно поправимую пустую выдачу.
+            # Одноразовое снятие фильтров, если они дали пусто
             results = search_tracks_filtered(
                 conn, embedder, query, top_n,
                 min_duration_seconds=loop_duration_seconds,

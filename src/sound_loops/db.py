@@ -1,9 +1,4 @@
-"""Подключение к Postgres: создание базы и применение миграций (yoyo).
-
-Каждое изменение схемы — отдельный пронумерованный файл в migrations/;
-yoyo ведёт учёт применённых миграций и гарантирует, что каждая накатится
-ровно один раз.
-"""
+"""Подключение к Postgres: создание базы и применение миграций (yoyo)."""
 
 from __future__ import annotations
 
@@ -19,7 +14,6 @@ MIGRATIONS_DIR = Path(__file__).parent / "migrations"
 
 
 def _server_url_and_dbname(database_url: str) -> tuple[str, str]:
-    """Разбить URL на (строка подключения к серверу без конкретной базы, имя базы)."""
     parts = urlsplit(database_url)
     dbname = parts.path.lstrip("/")
     if not dbname:
@@ -29,7 +23,6 @@ def _server_url_and_dbname(database_url: str) -> tuple[str, str]:
 
 
 def ensure_database_exists(database_url: str) -> None:
-    """Создать базу, если её ещё нет. Подключается к обслуживающей базе postgres."""
     server_url, dbname = _server_url_and_dbname(database_url)
     with psycopg.connect(server_url, autocommit=True) as conn:
         exists = conn.execute(
@@ -46,7 +39,6 @@ def _yoyo_url(database_url: str) -> str:
 
 
 def init_schema(database_url: str) -> None:
-    """Применить непринятые миграции. Идемпотентно — повторный запуск не падает."""
     backend = get_backend(_yoyo_url(database_url))
     migrations = read_migrations(str(MIGRATIONS_DIR))
     with backend.lock():

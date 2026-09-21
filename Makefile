@@ -57,7 +57,7 @@ analyze-loop:
 	uv run sound-loops analyze --loop $(LOOP)
 
 # Подобрать музыку для всех уже проанализированных лупов в data/loops (см. analyze) + CLAP-поиск.
-# Конфигурация (итерация 4): make match FILTERS=1 RERANK=1
+# Конфигурация: make match FILTERS=1 RERANK=1
 match:
 	for f in data/loops/*.mp4; do \
 		uv run sound-loops match --loop "$$f" $(if $(FILTERS),--filters,) $(if $(RERANK),--rerank,); \
@@ -71,7 +71,7 @@ match-loop:
 	fi
 	uv run sound-loops match --loop $(LOOP) $(if $(FILTERS),--filters,) $(if $(RERANK),--rerank,)
 
-# Запустить веб-интерфейс агента (итерация 5): загрузка -> 3 превью -> обратная связь
+# Запустить веб-интерфейс агента: загрузка -> 3 превью -> обратная связь
 ui:
 	uv run sound-loops ui
 

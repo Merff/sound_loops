@@ -159,7 +159,7 @@ def build_app(settings: Settings) -> gr.Blocks:
     def run_manual_cleanup(render_ids: list[int]):
         if not render_ids:
             return "", []
-        report = cleanup_session_renders(conn, render_ids)
+        cleanup_session_renders(conn, render_ids)
         return "", []
 
     def _make_rate_handler(slot_index: int):

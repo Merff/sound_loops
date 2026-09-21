@@ -1,7 +1,3 @@
-"""Точка входа: sound-loops init-db|ingest-loops|ingest-tracks|render|index|
-tag-tracks|search|analyze|match|eval-run|eval-compare|blind-eval|clear-renders|
-clear-analyses|clap-check."""
-
 from __future__ import annotations
 
 import logging
@@ -26,9 +22,6 @@ def cli(verbose: bool) -> None:
 
 @cli.command("init-db")
 def init_db_cmd() -> None:
-    """Создать базу (если её ещё нет), применить схему и завести таблицы
-    Postgres-чекпойнтера LangGraph (итерация 5) — отдельно от yoyo-схемы,
-    т.к. это инфраструктура LangGraph, не доменная модель проекта."""
     settings = load_settings()
     ensure_database_exists(settings.database_url)
     init_schema(settings.database_url)
@@ -43,7 +36,6 @@ def init_db_cmd() -> None:
 
 @cli.command("ingest-loops")
 def ingest_loops_cmd() -> None:
-    """Просканировать только data/loops, заполнить таблицу loops."""
     settings = load_settings()
     report = IngestReport()
     with connect(settings.database_url) as conn:
@@ -53,7 +45,6 @@ def ingest_loops_cmd() -> None:
 
 @cli.command("ingest-tracks")
 def ingest_tracks_cmd() -> None:
-    """Просканировать только data/raw, заполнить таблицу tracks."""
     settings = load_settings()
     report = IngestReport()
     with connect(settings.database_url) as conn:
@@ -70,7 +61,7 @@ def ingest_tracks_cmd() -> None:
     help="Путь к конкретному лупу. Без флага берётся случайный луп из базы.",
 )
 def render_cmd(loop_path: Path | None) -> None:
-    """Собрать mp4: луп + случайный отрезок трека под его длительность."""
+    """Собрать mp4: луп + случайный трек"""
     settings = load_settings()
     with connect(settings.database_url) as conn:
         output_path = render_once(conn, settings, loop_path)

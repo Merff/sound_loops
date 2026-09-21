@@ -1,18 +1,11 @@
-"""Граф LangGraph (итерация 5, docs/sound_loops-iteration-5.md): линейная
-цепочка итераций 2-4 (analyze -> query -> search -> rerank -> render)
+"""Граф LangGraph: линейная цепочка (analyze -> query -> search -> rerank -> render)
 становится графом с явным состоянием и одним условным ребром — из
 feedback либо назад в plan, либо в конец.
 
-Состояние хранит только то, что можно (де)сериализовать чекпойнтером:
-SceneDescription и SearchResult лежат как dict/список dict, не как сами
-объекты — так надёжнее переживает Postgres-чекпойнтер разных версий
-langgraph, чем полагаться на то, что он умеет пиклить наши dataclass/pydantic
-типы напрямую.
+Состояние хранит только то, что можно (де)сериализовать чекпойнтером.
 
 build_agent_graph — интерактивный граф для UI (с чекпойнтером и остановкой
-на feedback). build_eval_graph — тот же analyze/plan/rerank без render и
-feedback, для eval_run.py: харнесс меряет только первый проход, рендерить
-аудио и останавливаться в ожидании пользователя ему незачем.
+на feedback). build_eval_graph — тот же analyze/plan/rerank без render и feedback.
 """
 
 from __future__ import annotations
@@ -115,7 +108,7 @@ def _make_plan_node(conn: psycopg.Connection, embedder: Embedder, analyzer: Scen
 
         # Дедуп не только в пределах этой сессии (rejected_track_ids), но и
         # то, что пользователь когда-то отметил "плохо" для этого же лупа в
-        # прошлых сессиях (rating в renders, итерация 5) — постоянно, не
+        # прошлых сессиях (rating в renders) — постоянно, не
         # только на время текущего разговора.
         exclude_ids = set(state.get("rejected_track_ids", [])) | set(
             get_bad_rated_track_ids(conn, state["loop_id"])
@@ -211,9 +204,7 @@ def _make_render_node(conn: psycopg.Connection, settings: Settings):
 
 
 def feedback_node(state: AgentState) -> dict:
-    """Останавливает граф штатным interrupt() и ждёт текст пользователя.
-    Функция переисполняется целиком при resume (см. langgraph.types.interrupt),
-    но до и после interrupt() тут нет побочных эффектов — безопасно."""
+    """Останавливает граф штатным interrupt() и ждёт текст пользователя."""
     text = interrupt(
         {
             "candidates": state["candidates"],
@@ -244,9 +235,7 @@ def build_agent_graph(
     settings: Settings,
     checkpointer: BaseCheckpointSaver,
 ):
-    """Полный интерактивный граф: analyze -> plan -> rerank -> render ->
-    feedback -> (plan | конец). Нужен чекпойнтер — без него interrupt() в
-    feedback_node падает (см. langgraph.types.interrupt)."""
+    """Полный интерактивный граф: analyze -> plan -> rerank -> render -> feedback -> (plan | конец). """
     graph = StateGraph(AgentState)
     graph.add_node("analyze", _make_analyze_node(conn, analyzer, settings))
     graph.add_node("plan", _make_plan_node(conn, embedder, analyzer, settings))
@@ -266,8 +255,7 @@ def build_agent_graph(
 
 def build_eval_graph(conn: psycopg.Connection, embedder: Embedder, analyzer: SceneAnalyzer, settings: Settings):
     """analyze -> plan -> rerank -> конец, без render/feedback: eval_run.py
-    меряет только первый проход и не должен ни рендерить mp4, ни ждать
-    ввода (см. docs/sound_loops-iteration-5.md, раздел «Эвалы»)."""
+    меряет только первый проход и не должен ни рендерить mp4, ни ждать ввода."""
     graph = StateGraph(AgentState)
     graph.add_node("analyze", _make_analyze_node(conn, analyzer, settings))
     graph.add_node("plan", _make_plan_node(conn, embedder, analyzer, settings))

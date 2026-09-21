@@ -155,7 +155,6 @@ def render_once(
     settings: Settings,
     loop_path: Path | None = None,
 ) -> Path:
-    """Собрать одно превью: луп + случайный отрезок трека под его длительность."""
     loop = get_loop_by_path(conn, loop_path, settings) if loop_path else get_random_loop(conn)
     track = get_random_track(conn, loop.duration_seconds)
     _render_id, output_path = render_preview(conn, settings, loop, track.id, track.path, track.duration_seconds)

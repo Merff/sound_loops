@@ -1,10 +1,6 @@
-"""Слепая оценка (метрика 3, docs/sound_loops-iteration-3.md): на каждый луп
-из набора — превью от пайплайна (match_once) и от случайного baseline
+"""Слепая оценка: на каждый луп из набора — превью от пайплайна (match_once) и от случайного baseline
 (render_once), порядок A/B перемешан случайно, оценщик не знает, что есть что.
-
-Переиспользует match_once/render_once как есть — они пишут в renders/
-video_analyses обычным образом, отдельного бухгалтерского пути в обход БД
-нет: слепой прогон — это просто ещё один способ вызвать существующий код.
+Переиспользует match_once/render_once как есть — они пишут в renders/video_analyses обычным образом
 """
 
 from __future__ import annotations
@@ -34,7 +30,7 @@ class BlindPair(BaseModel):
     label_a: Side
     path_a: str
     path_b: str
-    rerank_reasoning: str | None = None  # объяснение модели (use_rerank=True) — печатается после ответа, не до
+    rerank_reasoning: str | None = None  # объяснение модели (use_rerank=True) — печатается после ответа
 
 
 class BlindAnswer(BaseModel):

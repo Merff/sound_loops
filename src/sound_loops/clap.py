@@ -38,9 +38,7 @@ def _from_pretrained(cls, checkpoint: str):
 
 DEFAULT_CHECKPOINT = "laion/larger_clap_general"
 
-# Заведомо непохожие фразы для проверки, что текстовая башня не схлопнута:
-# если все попарные косинусные близости около 0.99 — чекпоинт для поиска
-# по тексту непригоден, дальше идти бессмысленно (см. docs/sound_loops-iteration-1.md).
+# Заведомо непохожие фразы для проверки, что текстовая башня не схлопнута
 COLLAPSE_CHECK_PHRASES = [
     "heavy distorted guitar riff",
     "slow sad piano ballad",
@@ -105,6 +103,5 @@ class ClapEmbedder:
 
 
 def check_text_tower(embedder) -> np.ndarray:
-    """Матрица попарных косинусных близостей COLLAPSE_CHECK_PHRASES."""
     vectors = normalize(embedder.embed_texts(COLLAPSE_CHECK_PHRASES))
     return vectors @ vectors.T

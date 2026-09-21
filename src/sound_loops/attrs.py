@@ -1,9 +1,7 @@
-"""Команда tag-tracks (итерация 4, docs/sound_loops-iteration-4.md): темп +
-zero-shot теги для треков без атрибутов текущей версии. Возобновляемая, как
+"""Команда tag-tracks: темп + zero-shot теги для треков без атрибутов текущей версии. Возобновляемая, как
 index.py — коммит после каждого трека, прерванный запуск не теряет уже
 посчитанное. Теги берутся из уже посчитанного tracks.embedding (без похода
-в CLAP за аудио), темп требует отдельного decode через ffmpeg — CLAP тут
-не участвует вообще.
+в CLAP за аудио), темп требует отдельного decode через ffmpeg — CLAP тут не участвует.
 """
 
 from __future__ import annotations
@@ -24,9 +22,9 @@ from sound_loops.tempo import estimate_tempo_bpm, normalize_tempo_octave
 
 logger = logging.getLogger(__name__)
 
-# Версия набора фраз/логики темпа — меняется, если правятся VOCAL_PHRASES/
-# MOOD_PHRASES/GENRE_PHRASES в tags.py или границы в tempo.py, иначе в базе
-# смешаются числа, посчитанные разными фразами.
+"""Версия набора фраз/логики темпа — меняется, если правятся VOCAL_PHRASES/
+MOOD_PHRASES/GENRE_PHRASES в tags.py или границы в tempo.py, иначе в базе
+смешаются числа, посчитанные разными фразами."""
 ATTRS_VERSION = "v1"
 
 

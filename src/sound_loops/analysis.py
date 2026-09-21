@@ -1,7 +1,5 @@
-"""Кеш шага A (video_analyses): анализ сцены лупа привязан к (loop_id,
-model, prompt_version), повторный запуск с тем же ключом не гоняет VLM
-заново — прогон по кадрам занимает десятки секунд, а формулировки шага B
-на этом кеше можно крутить десятки раз за минуты (docs/sound_loops-iteration-2.md).
+"""Анализ сцены лупа привязан к (loop_id, model, prompt_version), повторный запуск с тем же ключом
+не гоняет VLM заново — прогон по кадрам занимает десятки секунд.
 """
 
 from __future__ import annotations
@@ -67,12 +65,8 @@ def analyze_loop(
     get_frames: Callable[[], Sequence[bytes]],
     get_motion: Callable[[], Motion],
 ) -> tuple[AnalysisRecord, bool]:
-    """Вернуть (запись анализа, взята_ли_из_кеша).
-
-    get_frames/get_motion — лениво: при попадании в кеш ни VLM, ни разница
-    кадров вообще не считаются. Motion не спрашивается у VLM (см. motion.py
-    и vlm.py::SceneObservation) — собирается здесь же, в полный SceneDescription.
-    """
+    """get_frames/get_motion — лениво: при попадании в кеш ни VLM, ни разница
+    кадров вообще не считаются."""
     cached = get_cached_analysis(conn, loop_id, analyzer.model_id, analyzer.prompt_version)
     if cached is not None:
         return cached, True
