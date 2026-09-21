@@ -53,15 +53,12 @@ def prepare_pairs(
     embedder: Embedder,
     settings: Settings,
     dataset: list[LoopAnnotation],
-    use_filters: bool = False,
     use_rerank: bool = False,
 ) -> list[BlindPair]:
     pairs = []
     for entry in dataset:
         loop_path = Path(entry.loop)
-        pipeline_result = match_once(
-            conn, analyzer, embedder, settings, loop_path, use_filters=use_filters, use_rerank=use_rerank
-        )
+        pipeline_result = match_once(conn, analyzer, embedder, settings, loop_path, use_rerank=use_rerank)
         baseline_path = render_once(conn, settings, loop_path)
 
         label_a: Side = random.choice(["pipeline", "baseline"])

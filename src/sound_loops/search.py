@@ -16,14 +16,16 @@ import psycopg
 from pgvector.psycopg import register_vector
 
 from sound_loops.embeddings import Embedder, normalize
-from sound_loops.filters import (
-    VOCALS_CONFIDENCE_MARGIN,
-    FilterLevel,
-    TempoRange,
-    relaxation_ladder,
-    run_relaxation_ladder,
-)
 from sound_loops.vlm import Vocals
+
+TempoRange = tuple[float, float]
+
+# Порог "уверенности" тега вокала: трек с
+# |with_vocals - instrumental| меньше этого числа фильтр по вокалу не
+# трогает, значение — медиана этого зазора по всей библиотеке.
+VOCALS_CONFIDENCE_MARGIN = 0.11
+
+_COLUMNS = "id, path, title, artist, genre, 1 - (embedding <=> %s) AS similarity, tempo_bpm, tags"
 
 
 class SearchError(RuntimeError):
@@ -60,7 +62,7 @@ def search_tracks(
 
     rows = conn.execute(
         f"""
-        SELECT id, path, title, artist, genre, 1 - (embedding <=> %s) AS similarity
+        SELECT {_COLUMNS}
         FROM tracks
         WHERE embedding IS NOT NULL {duration_clause}
         ORDER BY embedding <=> %s
@@ -79,8 +81,11 @@ def search_tracks(
     return [SearchResult(*row) for row in rows]
 
 
-def _hybrid_where(
-    level: FilterLevel, min_duration_seconds: float | None, exclude_ids: Sequence[int] | None = None
+def _where(
+    min_duration_seconds: float | None,
+    tempo_range: TempoRange | None,
+    vocals: Vocals | None,
+    exclude_ids: Sequence[int] | None,
 ) -> tuple[str, list]:
     clauses = ["embedding IS NOT NULL"]
     params: list = []
@@ -90,62 +95,22 @@ def _hybrid_where(
     if exclude_ids:
         clauses.append("id != ALL(%s)")
         params.append(list(exclude_ids))
-    if level.tempo_range is not None:
+    if tempo_range is not None:
         clauses.append("tempo_bpm BETWEEN %s AND %s")
-        params += [level.tempo_range[0], level.tempo_range[1]]
-    if level.vocals is not None:
+        params += [tempo_range[0], tempo_range[1]]
+    if vocals is not None:
         # Трек проходит, если его метка вокала уверенно совпадает с искомой,
         # ИЛИ если у него самого разница между метками мала (шумная
         # классификация — не исключаем по ней, см. VOCALS_CONFIDENCE_MARGIN).
-        other = "with_vocals" if level.vocals == "instrumental" else "instrumental"
+        other = "with_vocals" if vocals == "instrumental" else "instrumental"
         clauses.append(
             "("
             "(tags -> 'vocals' ->> %s)::float >= (tags -> 'vocals' ->> %s)::float"
             " OR ABS((tags -> 'vocals' ->> 'with_vocals')::float - (tags -> 'vocals' ->> 'instrumental')::float) < %s"
             ")"
         )
-        params += [level.vocals, other, VOCALS_CONFIDENCE_MARGIN]
+        params += [vocals, other, VOCALS_CONFIDENCE_MARGIN]
     return " AND ".join(clauses), params
-
-
-def search_tracks_hybrid(
-    conn: psycopg.Connection,
-    embedder: Embedder,
-    query: str,
-    tempo_range: TempoRange,
-    vocals: Vocals,
-    top_n: int,
-    min_duration_seconds: float | None = None,
-) -> tuple[list[SearchResult], list[str]]:
-    """SQL-фильтр по темпу/вокалу -> векторное ранжирование остатка, с
-    лестницей послаблений (filters.py) — библиотека маленькая, жёсткие
-    условия регулярно дают пустую выдачу. На нескольких сотнях треков
-    точный перебор мгновенный.
-    """
-    register_vector(conn)
-    vector = normalize(embedder.embed_texts([query]))[0]
-
-    def attempt(level: FilterLevel) -> list[SearchResult]:
-        where_sql, filter_params = _hybrid_where(level, min_duration_seconds)
-        rows = conn.execute(
-            f"""
-            SELECT id, path, title, artist, genre, 1 - (embedding <=> %s) AS similarity, tempo_bpm, tags
-            FROM tracks
-            WHERE {where_sql}
-            ORDER BY embedding <=> %s
-            LIMIT %s
-            """,
-            [vector, *filter_params, vector, top_n],
-        ).fetchall()
-        return [SearchResult(*row) for row in rows]
-
-    levels = relaxation_ladder(tempo_range, vocals)
-    results, relaxed = run_relaxation_ladder(levels, attempt)
-
-    if not results:
-        raise SearchError("в базе нет проиндексированных треков — сначала запустите index")
-
-    return results, relaxed
 
 
 def search_tracks_filtered(
@@ -158,20 +123,19 @@ def search_tracks_filtered(
     vocals: Vocals | None = None,
     exclude_ids: Sequence[int] | None = None,
 ) -> list[SearchResult]:
-    """Один SQL-запрос с необязательными фильтрами по темпу/вокалу — без
-    лестницы послаблений search_tracks_hybrid. Используется инструментом
-    поиска узла plan: там послабления не
-    нужны — если фильтры дали пусто, это решает сам агент следующим
-    вызовом инструмента, а не код автоматически.
+    """Один SQL-запрос с необязательными фильтрами по темпу/вокалу.
+    Используется инструментом поиска узла plan (agent_planner.py): если
+    фильтры дали пусто, это решает сам агент следующим вызовом
+    инструмента, а не код автоматически. exclude_ids — треки,
+    уже показанные в предыдущих кругах обратной связи (см. agent_graph.py).
     """
     register_vector(conn)
     vector = normalize(embedder.embed_texts([query]))[0]
 
-    level = FilterLevel(tempo_range, vocals, None)
-    where_sql, filter_params = _hybrid_where(level, min_duration_seconds, exclude_ids)
+    where_sql, filter_params = _where(min_duration_seconds, tempo_range, vocals, exclude_ids)
     rows = conn.execute(
         f"""
-        SELECT id, path, title, artist, genre, 1 - (embedding <=> %s) AS similarity, tempo_bpm, tags
+        SELECT {_COLUMNS}
         FROM tracks
         WHERE {where_sql}
         ORDER BY embedding <=> %s

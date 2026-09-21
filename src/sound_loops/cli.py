@@ -182,11 +182,8 @@ def analyze_cmd(loop_path: Path | None) -> None:
     default=None,
     help="Путь к конкретному лупу. Без флага берётся случайный луп из базы.",
 )
-@click.option(
-    "--filters/--no-filters", default=False, help="Гибридный поиск: фильтры по темпу/вокалу (нужен tag-tracks)."
-)
 @click.option("--rerank/--no-rerank", default=False, help="Переранжирование топ-кандидатов моделью.")
-def match_cmd(loop_path: Path | None, filters: bool, rerank: bool) -> None:
+def match_cmd(loop_path: Path | None, rerank: bool) -> None:
     """Подобрать музыку под уже проанализированный луп (см. analyze) -> CLAP-поиск -> mp4."""
     settings = load_settings()
 
@@ -204,14 +201,12 @@ def match_cmd(loop_path: Path | None, filters: bool, rerank: bool) -> None:
     )
 
     with connect(settings.database_url) as conn:
-        result = match_once(conn, analyzer, embedder, settings, loop_path, use_filters=filters, use_rerank=rerank)
+        result = match_once(conn, analyzer, embedder, settings, loop_path, use_rerank=rerank)
 
     scene = result.analysis.scene
     click.echo(f"Луп: {result.loop.path}")
     click.echo(f"Обстановка: {scene.setting}; движение: {scene.motion}; настроение: {', '.join(scene.mood)}")
     click.echo(f"Музыкальный запрос: {result.music_query}")
-    if result.relaxed_filters:
-        click.echo(f"Послабления фильтров: {', '.join(result.relaxed_filters)}")
     click.echo(f"Топ-{len(result.candidates)} кандидата:")
     for rank, r in enumerate(result.candidates, start=1):
         title = r.title or Path(r.path).name
@@ -225,19 +220,16 @@ def match_cmd(loop_path: Path | None, filters: bool, rerank: bool) -> None:
 @click.option(
     "--loop", "loop_filter", type=str, default=None, help="Прогнать только один луп (путь как в разметке)."
 )
-@click.option(
-    "--filters/--no-filters", default=False, help="Гибридный поиск: фильтры по темпу/вокалу (нужен tag-tracks)."
-)
 @click.option("--rerank/--no-rerank", default=False, help="Переранжирование топ-кандидатов моделью.")
 @click.option(
     "--agent/--no-agent", default=False,
     help="Первый проход графа-агента (итерация 5): поиск как инструмент, hit@k по объединению 3 query. "
-    "Несовместимо с --filters/--rerank — агент фильтрует и переранжирует сам.",
+    "Несовместимо с --rerank — агент переранжирует сам.",
 )
-def eval_run_cmd(loop_filter: str | None, filters: bool, rerank: bool, agent: bool) -> None:
+def eval_run_cmd(loop_filter: str | None, rerank: bool, agent: bool) -> None:
     """Прогнать пайплайн по evals/dataset.json, посчитать метрики и сохранить прогон."""
-    if agent and (filters or rerank):
-        raise click.ClickException("--agent несовместим с --filters/--rerank — агент сам решает то и другое")
+    if agent and rerank:
+        raise click.ClickException("--agent несовместим с --rerank — агент переранжирует сам")
 
     settings = load_settings()
 
@@ -267,7 +259,7 @@ def eval_run_cmd(loop_filter: str | None, filters: bool, rerank: bool, agent: bo
     with connect(settings.database_url) as conn:
         run = run_eval(
             conn, analyzer, embedder, settings, dataset,
-            temperature=0.0, use_filters=filters, use_rerank=rerank, use_agent=agent,
+            temperature=0.0, use_rerank=rerank, use_agent=agent,
         )
 
     run.print_summary()
@@ -287,11 +279,8 @@ def eval_compare_cmd(run_a: Path, run_b: Path) -> None:
 
 
 @cli.command("blind-eval")
-@click.option(
-    "--filters/--no-filters", default=False, help="Гибридный поиск: фильтры по темпу/вокалу (нужен tag-tracks)."
-)
 @click.option("--rerank/--no-rerank", default=False, help="Переранжирование топ-кандидатов моделью.")
-def blind_eval_cmd(filters: bool, rerank: bool) -> None:
+def blind_eval_cmd(rerank: bool) -> None:
     """Слепое сравнение пайплайна со случайным baseline на всём наборе разметки."""
     settings = load_settings()
 
@@ -315,9 +304,7 @@ def blind_eval_cmd(filters: bool, rerank: bool) -> None:
     )
 
     with connect(settings.database_url) as conn:
-        pairs = prepare_pairs(
-            conn, analyzer, embedder, settings, dataset, use_filters=filters, use_rerank=rerank
-        )
+        pairs = prepare_pairs(conn, analyzer, embedder, settings, dataset, use_rerank=rerank)
 
     def ask(pair) -> str:
         click.echo(f"\nЛуп: {pair.loop}")

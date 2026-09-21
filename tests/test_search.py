@@ -11,7 +11,6 @@ from sound_loops.search import (
     export_results,
     search_tracks,
     search_tracks_filtered,
-    search_tracks_hybrid,
 )
 
 
@@ -108,77 +107,24 @@ def _insert_track_with_attrs(
     conn.commit()
 
 
-def test_search_tracks_hybrid_matches_with_no_relaxation(db_conn):
-    query = _basis(0)
-    _insert_track_with_attrs(db_conn, "in_range.mp3", query, 100.0, {"instrumental": 0.9, "with_vocals": 0.1})
-    _insert_track_with_attrs(db_conn, "out_of_range.mp3", query, 300.0, {"instrumental": 0.9, "with_vocals": 0.1})
-
-    results, applied = search_tracks_hybrid(
-        db_conn, FixedTextEmbedder(query), "query", tempo_range=(90.0, 110.0), vocals="instrumental", top_n=10
-    )
-
-    assert [r.path for r in results] == ["in_range.mp3"]
-    assert applied == []
-
-
-def test_search_tracks_hybrid_widens_tempo_range_when_strict_is_empty(db_conn):
-    query = _basis(0)
-    # (90, 110) расширяется в 1.5 раза до (85, 115) — 112 снаружи строгого диапазона, внутри расширенного.
-    _insert_track_with_attrs(db_conn, "just_outside.mp3", query, 112.0, {"instrumental": 0.9, "with_vocals": 0.1})
-
-    results, applied = search_tracks_hybrid(
-        db_conn, FixedTextEmbedder(query), "query", tempo_range=(90.0, 110.0), vocals="instrumental", top_n=10
-    )
-
-    assert [r.path for r in results] == ["just_outside.mp3"]
-    assert applied == ["расширен диапазон темпа"]
-
-
-def test_search_tracks_hybrid_does_not_exclude_ambiguous_vocals_tag(db_conn):
-    """Разница меньше VOCALS_CONFIDENCE_MARGIN — трек проходит фильтр по вокалу
-    без послаблений, даже если формально "не та" метка чуть выше."""
+def test_search_tracks_filtered_does_not_exclude_ambiguous_vocals_tag(db_conn):
+    """Разница меньше VOCALS_CONFIDENCE_MARGIN — трек проходит фильтр по вокалу,
+    даже если формально "не та" метка чуть выше."""
     query = _basis(0)
     _insert_track_with_attrs(db_conn, "ambiguous_vocals.mp3", query, 100.0, {"instrumental": 0.10, "with_vocals": 0.12})
 
-    results, applied = search_tracks_hybrid(
-        db_conn, FixedTextEmbedder(query), "query", tempo_range=(90.0, 110.0), vocals="instrumental", top_n=10
-    )
+    results = search_tracks_filtered(db_conn, FixedTextEmbedder(query), "query", top_n=10, vocals="instrumental")
 
     assert [r.path for r in results] == ["ambiguous_vocals.mp3"]
-    assert applied == []
 
 
-def test_search_tracks_hybrid_drops_vocals_requirement_when_still_empty(db_conn):
+def test_search_tracks_filtered_excludes_confidently_wrong_vocals_tag(db_conn):
     query = _basis(0)
     _insert_track_with_attrs(db_conn, "wrong_vocals.mp3", query, 100.0, {"instrumental": 0.1, "with_vocals": 0.9})
 
-    results, applied = search_tracks_hybrid(
-        db_conn, FixedTextEmbedder(query), "query", tempo_range=(90.0, 110.0), vocals="instrumental", top_n=10
-    )
+    results = search_tracks_filtered(db_conn, FixedTextEmbedder(query), "query", top_n=10, vocals="instrumental")
 
-    assert [r.path for r in results] == ["wrong_vocals.mp3"]
-    assert applied == ["расширен диапазон темпа", "снято требование по вокалу"]
-
-
-def test_search_tracks_hybrid_falls_back_to_unfiltered_vector_search(db_conn):
-    query = _basis(0)
-    # Темп вне даже расширенного диапазона и не соответствует вокалу — найдётся
-    # только на последней ступени, когда фильтры сняты полностью.
-    _insert_track_with_attrs(db_conn, "no_attrs.mp3", query, None, None)
-
-    results, applied = search_tracks_hybrid(
-        db_conn, FixedTextEmbedder(query), "query", tempo_range=(90.0, 110.0), vocals="instrumental", top_n=10
-    )
-
-    assert [r.path for r in results] == ["no_attrs.mp3"]
-    assert applied == ["расширен диапазон темпа", "снято требование по вокалу", "фильтры сняты полностью"]
-
-
-def test_search_tracks_hybrid_raises_when_catalog_empty(db_conn):
-    with pytest.raises(SearchError):
-        search_tracks_hybrid(
-            db_conn, FixedTextEmbedder(_basis(0)), "query", tempo_range=(90.0, 110.0), vocals="instrumental", top_n=10
-        )
+    assert results == []
 
 
 def test_search_tracks_filtered_without_constraints_matches_plain_search(db_conn):
@@ -201,7 +147,7 @@ def test_search_tracks_filtered_applies_tempo_range_without_relaxation(db_conn):
 
 
 def test_search_tracks_filtered_no_relaxation_on_empty_result(db_conn):
-    """В отличие от search_tracks_hybrid, тут нет лестницы послаблений —
+    """Пустая выдача остаётся пустой — послаблений фильтров нет,
     слишком строгий фильтр просто возвращает пусто, агент сам решает,
     ослаблять ли параметры следующим вызовом инструмента."""
     query = _basis(0)

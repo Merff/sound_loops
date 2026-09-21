@@ -33,25 +33,25 @@
 [iteration-3](docs/sound_loops-iteration-3.md) (эвал-харнесс, baseline в
 README) ·
 [iteration-4](docs/sound_loops-iteration-4.md) (RAG: атрибуты треков,
-фильтры, реранк — по факту не рекомендованы к включению, см. README) ·
+фильтры, реранк — фильтры и лестница послаблений с тех пор удалены как
+не давшие эффекта, см. README) ·
 [iteration-5](docs/sound_loops-iteration-5.md) (граф-агент + UI).
 
 ## Команды
 
 `cli.py`: `init-db`, `ingest-loops`, `ingest-tracks`, `render [--loop PATH]`, `index`,
 `search QUERY [--top N] [--export-dir DIR]`, `analyze [--loop PATH]`,
-`match [--loop PATH] [--filters] [--rerank]`, `ui`, `clear-renders`,
-`clear-analyses`, `clap-check`, `eval-run [--loop PATH] [--filters]
-[--rerank] [--agent]`, `eval-compare RUN_A RUN_B`, `blind-eval`. Через
-`make` — см. `Makefile` (флаги: `LOOP=`, `FILTERS=1`, `RERANK=1`,
-`AGENT=1`).
+`match [--loop PATH] [--rerank]`, `ui`, `clear-renders`,
+`clear-analyses`, `clap-check`, `eval-run [--loop PATH] [--rerank]
+[--agent]`, `eval-compare RUN_A RUN_B`, `blind-eval`. Через
+`make` — см. `Makefile` (флаги: `LOOP=`, `RERANK=1`, `AGENT=1`).
 
 Зависимости между командами, не видные из `--help`:
 - **`match` требует, чтобы `analyze` уже был прогнан на этом лупе** —
   иначе `MatchError` с подсказкой. Это намеренно разные команды (не одна
   VLM-команда), чтобы дорогой шаг A гонять редко, а B/C/D — дёшево и часто.
-- **`eval-run --agent` несовместим с `--filters`/`--rerank`** — агент
-  фильтрует и переранжирует сам, это независимая четвёртая конфигурация.
+- **`eval-run --agent` несовместим с `--rerank`** — агент переранжирует
+  сам, это независимая конфигурация.
 - `clear-renders` трогает БД и файлы, но не `video_analyses`.
   `clear-analyses` каскадно чистит и рендеры, сделанные по этим анализам
   (`renders.analysis_id IS NOT NULL`), но не baseline-рендеры итерации 0.
@@ -149,9 +149,9 @@ README «Поиск музыки по тексту»).
 `blind-eval` и быстрая ручная проверка одного превью).
 
 - **`plan`** ([agent_planner.py](src/sound_loops/agent_planner.py)`::plan_tracks`):
-  поиск — инструмент (`search_music` → `search_tracks_filtered`, без
-  лестницы послаблений `search_tracks_hybrid` — агент сам решает,
-  ослаблять ли параметры), модель вызывает его сама через
+  поиск — инструмент (`search_music` → `search_tracks_filtered`; пустая
+  выдача остаётся пустой, ослаблять ли параметры — решает агент
+  следующим вызовом, не код), модель вызывает его сама через
   `SceneAnalyzer.bind_tools()`, пока не наберёт `agent_slot_count` (3)
   разных запросов, но не больше `agent_max_plan_iterations` ходов.
   **Резервный путь** (модель дважды подряд не вызвала инструмент)

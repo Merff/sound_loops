@@ -79,34 +79,6 @@ def test_run_eval_mean_penalized_rank_uses_search_depth_for_not_found(
     assert run.aggregates.mean_penalized_rank == db_settings.eval_search_depth
 
 
-def test_run_eval_with_filters_relaxes_when_no_attrs(
-    db_conn, db_settings, get_silent_loop, get_tone_track, tmp_path, fake_embedder, fake_scene_analyzer
-):
-    """Треки без tag-tracks не имеют tempo_bpm/tags — лестница послаблений
-    должна дойти до полного снятия фильтров и найти их всё равно."""
-    loop_path, track_paths = _setup(db_conn, db_settings, get_silent_loop, get_tone_track, tmp_path, fake_embedder)
-
-    run = run_eval(
-        db_conn,
-        fake_scene_analyzer,
-        fake_embedder,
-        db_settings,
-        _dataset(loop_path, track_paths),
-        temperature=0.0,
-        use_filters=True,
-    )
-
-    assert run.use_filters is True
-    assert run.aggregates.loops_needing_relaxation == 1
-    result = run.loops[0]
-    assert result.hit_at_1 is True
-    assert result.relaxed_filters == [
-        "расширен диапазон темпа",
-        "снято требование по вокалу",
-        "фильтры сняты полностью",
-    ]
-
-
 def _basis(i: int, dim: int = 512) -> np.ndarray:
     v = np.zeros(dim, dtype=np.float32)
     v[i] = 1.0

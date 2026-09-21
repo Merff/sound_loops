@@ -57,37 +57,37 @@ analyze-loop:
 	uv run sound-loops analyze --loop $(LOOP)
 
 # Подобрать музыку для всех уже проанализированных лупов в data/loops (см. analyze) + CLAP-поиск.
-# Конфигурация: make match FILTERS=1 RERANK=1
+# Конфигурация: make match RERANK=1
 match:
 	for f in data/loops/*.mp4; do \
-		uv run sound-loops match --loop "$$f" $(if $(FILTERS),--filters,) $(if $(RERANK),--rerank,); \
+		uv run sound-loops match --loop "$$f" $(if $(RERANK),--rerank,); \
 	done
 
-# То же самое для одного конкретного лупа: make match-loop LOOP=data/loops/my_loop.mp4 [FILTERS=1] [RERANK=1]
+# То же самое для одного конкретного лупа: make match-loop LOOP=data/loops/my_loop.mp4 [RERANK=1]
 match-loop:
 	@if [ -z "$(LOOP)" ]; then \
 		echo "Укажи LOOP=путь/к/лупу.mp4, например: make match-loop LOOP=data/loops/my_loop.mp4"; \
 		exit 1; \
 	fi
-	uv run sound-loops match --loop $(LOOP) $(if $(FILTERS),--filters,) $(if $(RERANK),--rerank,)
+	uv run sound-loops match --loop $(LOOP) $(if $(RERANK),--rerank,)
 
 # Запустить веб-интерфейс агента: загрузка -> 3 превью -> обратная связь
 ui:
 	uv run sound-loops ui
 
 # Прогнать эвал по всему evals/dataset.json, напечатать метрики и сохранить прогон. (затратно)
-# Конфигурация: make eval-run FILTERS=1 RERANK=1
-# Первый проход графа-агента (несовместимо с FILTERS/RERANK): make eval-run AGENT=1
+# Конфигурация: make eval-run RERANK=1
+# Первый проход графа-агента (несовместимо с RERANK): make eval-run AGENT=1
 eval-run:
-	uv run sound-loops eval-run $(if $(FILTERS),--filters,) $(if $(RERANK),--rerank,) $(if $(AGENT),--agent,)
+	uv run sound-loops eval-run $(if $(RERANK),--rerank,) $(if $(AGENT),--agent,)
 
-# То же самое для одного лупа из разметки: make eval-run-loop LOOP=data/loops/my_loop.mp4 [FILTERS=1] [RERANK=1] [AGENT=1]
+# То же самое для одного лупа из разметки: make eval-run-loop LOOP=data/loops/my_loop.mp4 [RERANK=1] [AGENT=1]
 eval-run-loop:
 	@if [ -z "$(LOOP)" ]; then \
 		echo "Укажи LOOP=путь/к/лупу.mp4, как он записан в evals/dataset.json"; \
 		exit 1; \
 	fi
-	uv run sound-loops eval-run --loop $(LOOP) $(if $(FILTERS),--filters,) $(if $(RERANK),--rerank,) $(if $(AGENT),--agent,)
+	uv run sound-loops eval-run --loop $(LOOP) $(if $(RERANK),--rerank,) $(if $(AGENT),--agent,)
 
 # Сравнить два сохранённых прогона: make eval-compare A=evals/runs/x.json B=evals/runs/y.json
 eval-compare:
@@ -98,9 +98,9 @@ eval-compare:
 	uv run sound-loops eval-compare $(A) $(B)
 
 # Слепое сравнение пайплайна со случайным baseline на всём наборе разметки.
-# Конфигурация (итерация 4): make blind-eval FILTERS=1 RERANK=1
+# Конфигурация: make blind-eval RERANK=1
 blind-eval:
-	uv run sound-loops blind-eval $(if $(FILTERS),--filters,) $(if $(RERANK),--rerank,)
+	uv run sound-loops blind-eval $(if $(RERANK),--rerank,)
 
 # Удалить все рендеры — из базы и файлы с диска. video_analyses не трогает
 clear-renders:

@@ -1,7 +1,6 @@
 import pytest
 
 from sound_loops.analysis import analyze_loop_by_path
-from sound_loops.attrs import compute_attrs
 from sound_loops.ffmpeg_utils import probe
 from sound_loops.index import index_tracks
 from sound_loops.ingest import IngestReport, ingest_loop_file, ingest_track_file
@@ -73,26 +72,6 @@ def test_match_once_never_reruns_scene_analysis(
     assert first.analysis.id == second.analysis.id
 
 
-def test_match_once_with_filters_falls_back_when_no_attrs(
-    db_conn, db_settings, get_silent_loop, get_tone_track, tmp_path, fake_embedder, fake_scene_analyzer
-):
-    """Без tag-tracks у трека нет tempo_bpm/tags — лестница послаблений должна
-    дойти до полного снятия фильтров и всё равно найти трек."""
-    _loop_id, loop_path = _setup_loop_and_track(
-        db_conn, db_settings, get_silent_loop, get_tone_track, tmp_path, fake_embedder
-    )
-    analyze_loop_by_path(db_conn, fake_scene_analyzer, db_settings, loop_path)
-
-    result = match_once(db_conn, fake_scene_analyzer, fake_embedder, db_settings, loop_path, use_filters=True)
-
-    assert result.output_path.exists()
-    assert result.relaxed_filters == [
-        "расширен диапазон темпа",
-        "снято требование по вокалу",
-        "фильтры сняты полностью",
-    ]
-
-
 def test_match_once_with_rerank_prints_reasoning(
     db_conn, db_settings, get_silent_loop, get_tone_track, tmp_path, fake_embedder, fake_scene_analyzer
 ):
@@ -106,23 +85,6 @@ def test_match_once_with_rerank_prints_reasoning(
     assert result.output_path.exists()
     assert result.rerank_reasoning == "fake reasoning"
     assert fake_scene_analyzer.rerank_calls == 1
-
-
-def test_match_once_with_filters_and_rerank_together(
-    db_conn, db_settings, get_silent_loop, get_tone_track, tmp_path, fake_embedder, fake_scene_analyzer
-):
-    _loop_id, loop_path = _setup_loop_and_track(
-        db_conn, db_settings, get_silent_loop, get_tone_track, tmp_path, fake_embedder
-    )
-    analyze_loop_by_path(db_conn, fake_scene_analyzer, db_settings, loop_path)
-    compute_attrs(db_conn, fake_embedder, tempo_sample_rate=22050, tempo_max_seconds=5.0)
-
-    result = match_once(
-        db_conn, fake_scene_analyzer, fake_embedder, db_settings, loop_path, use_filters=True, use_rerank=True
-    )
-
-    assert result.output_path.exists()
-    assert result.rerank_reasoning == "fake reasoning"
 
 
 def test_match_once_picks_random_loop_when_no_path_given(
