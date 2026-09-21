@@ -124,7 +124,7 @@ class FakeEmbedder:
     контрольная сумма PCM), так что повторный вызов с тем же входом даёт тот
     же результат — этого достаточно, чтобы проверять индексацию/поиск как
     работу с базой, не трогая саму модель (её проверяют clap-check и ручное
-    прослушивание, см. docs/sound_loops-iteration-1.md).
+    прослушивание).
     """
 
     model_id = "fake-embedder-v1"
@@ -242,8 +242,8 @@ def test_database_url() -> str:
 
 @pytest.fixture
 def checkpointer(test_database_url: str):
-    """Postgres-чекпойнтер LangGraph (итерация 5) — его таблицы заводятся
-    отдельно от yoyo-схемы, см. cli.py::init_db_cmd и docs/sound_loops-iteration-5.md."""
+    """Postgres-чекпойнтер LangGraph — его таблицы заводятся
+    отдельно от yoyo-схемы, см. cli.py::init_db_cmd"""
     from langgraph.checkpoint.postgres import PostgresSaver
 
     with PostgresSaver.from_conn_string(test_database_url) as saver:

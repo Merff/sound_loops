@@ -64,7 +64,8 @@ class ClearAnalysesReport:
 
 
 def clear_analyses(conn: psycopg.Connection) -> ClearAnalysesReport:
-    """Удалить все video_analyses и рендеры, сделанные по ним (renders.analysis_id IS NOT NULL) — из базы и файлы с диска"""
+    """Удалить все video_analyses и рендеры, сделанные по ним (renders.analysis_id IS NOT NULL) —
+    из базы и файлы с диска"""
     dependent_deleted, files_deleted, files_missing = _delete_render_rows(conn, "analysis_id IS NOT NULL")
     analyses_deleted = conn.execute("DELETE FROM video_analyses").rowcount
     conn.commit()

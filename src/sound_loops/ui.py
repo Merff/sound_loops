@@ -1,9 +1,4 @@
-"""Веб-интерфейс на Gradio, две вкладки:
-«Агент» — загрузка лупа -> три превью с подобранной музыкой -> обратная
-связь текстом -> новая подборка (логика в agent_graph.py); «Поиск по
-запросу» — свой текстовый запрос вместо VLM-анализа сцены (логика в
-match.py::manual_match). Здесь только форма и показ результата.
-"""
+"""Веб-интерфейс на Gradio"""
 
 from __future__ import annotations
 
@@ -63,13 +58,13 @@ def build_app(settings: Settings) -> gr.Blocks:
     # ensure_offline_if_cached должен отработать ДО импорта gradio — у gradio
     # своя транзитивная зависимость на huggingface_hub, и если она успеет
     # импортироваться первой, HF_HUB_OFFLINE, выставленный чуть позже, часть
-    # её внутренних клиентов не подхватывает (см. hf_cache.py).
+    # её внутренних клиентов не подхватывает.
     ensure_offline_if_cached(settings.clap_checkpoint)
     import gradio as gr
 
     from sound_loops.clap import ClapEmbedder
 
-    # Обычное (не контекстно-менеджерное) соединение — держим его открытым
+    # Обычное соединение — держим его открытым
     # на всё время работы интерфейса, а не на одну команду, как в CLI.
     conn = psycopg.connect(settings.database_url)
     embedder = ClapEmbedder(settings.clap_checkpoint, settings.clap_device)
@@ -147,7 +142,7 @@ def build_app(settings: Settings) -> gr.Blocks:
             loop_path = _persist_upload(uploaded_video, settings.loops_dir)
 
         # Предыдущая подборка этой вкладки больше не нужна — подчищаем её,
-        # как и по завершении сессии агента (см. cleanup_session_renders).
+        # как и по завершении сессии агента.
         cleanup_session_renders(conn, prev_render_ids)
 
         result = manual_match(conn, embedder, settings, loop_path, query.strip(), settings.agent_slot_count)

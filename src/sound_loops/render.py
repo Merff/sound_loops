@@ -1,16 +1,5 @@
 """Сборка превью: трек проигрывается с начала (почти) целиком, под его
-длительность видео-луп повторяется целое число раз.
-
-Трек — естественная единица длительности превью (FMA-отрывки и кураторские
-треки ~30с, длиннее любого лупа): луп повторяется, пока не заполнит трек,
-а не наоборот. Если трек не делится на длительность лупа без остатка,
-лишний хвост (короче одного повтора лупа) отбрасывается с конца — луп либо
-крутится целиком, либо не крутится вовсе, обрывать его на середине цикла не
-хотим. Кандидат на трек выбирается из tracks — заранее никакая сетка не
-считается. track_id/start_seconds (всегда 0.0 — трек начинается с начала)
-сохраняются прямо в renders — отдельной таблицы под них не заводим, так как
-каждый отрезок используется ровно в одном рендере.
-"""
+длительность видео-луп повторяется целое число раз."""
 
 from __future__ import annotations
 
@@ -31,10 +20,6 @@ class RenderError(RuntimeError):
 
 
 def compute_repeat_count(loop_duration_seconds: float, track_duration_seconds: float) -> int:
-    """Сколько раз луп целиком помещается в трек — заполняем длительность
-    трека повторами лупа, остаток короче одного повтора отбрасывается.
-    Минимум 1 (не бывает нулевой длительности рендера), хотя на практике
-    трек всегда не короче лупа (см. get_random_track/search)."""
     return max(1, int(track_duration_seconds // loop_duration_seconds))
 
 
@@ -80,7 +65,6 @@ def get_random_loop(conn: psycopg.Connection) -> LoopRow:
 
 
 def get_random_track(conn: psycopg.Connection, min_duration_seconds: float) -> TrackRow:
-    """Взять случайный трек, которого хватит на всю длительность лупа."""
     row = conn.execute(
         """
         SELECT id, path, duration_seconds
@@ -108,12 +92,6 @@ def render_preview(
     analysis_id: int | None = None,
     music_query: str | None = None,
 ) -> tuple[int, Path]:
-    """Взять трек (почти) целиком, повторить луп нужное число раз, склеить и
-    записать renders. Общий хвост render_once/match_once/агентного узла
-    render (итерация 5) — каждый по-своему выбирает трек, дальше всё
-    одинаково. analysis_id/music_query — NULL для случайного baseline'а.
-    Возвращает (id рендера, путь) — id нужен агентному UI, чтобы потом
-    привязать к этому конкретному превью оценку пользователя (rating)."""
     repeat_count = compute_repeat_count(loop.duration_seconds, track_duration_seconds)
     final_duration = repeat_count * loop.duration_seconds
     start_seconds = 0.0  # всегда с начала трека, остаток короче лупа отбрасывается с конца
@@ -162,19 +140,14 @@ def render_once(
 
 
 def set_render_rating(conn: psycopg.Connection, render_id: int, rating: str) -> None:
-    """Пользовательская оценка превью в UI (итерация 5) — good/neutral/bad,
-    см. migrations/0007. rating валиден по CHECK в схеме, здесь не дублируем
-    проверку — некорректное значение просто упадёт на INSERT/UPDATE."""
+    """Пользовательская оценка превью в UI — good/neutral/bad"""
     conn.execute("UPDATE renders SET rating = %s WHERE id = %s", (rating, render_id))
     conn.commit()
 
 
 def get_bad_rated_track_ids(conn: psycopg.Connection, loop_id: int) -> list[int]:
-    """Треки, отмеченные "плохо" именно для этого лупа — узел plan (агент,
-    итерация 5) исключает их из поиска для этого лупа во всех будущих
-    сессиях, не только в пределах текущей (см. docs/sound_loops-iteration-5.md).
-    Намеренно не глобально: трек, не подошедший одной сцене, может подойти
-    другой."""
+    """Треки, отмеченные "плохо" именно для этого лупа —
+    узел plan исключает их из поиска для этого лупа во всех будущих сессиях"""
     rows = conn.execute(
         "SELECT DISTINCT track_id FROM renders WHERE loop_id = %s AND rating = 'bad'", (loop_id,)
     ).fetchall()

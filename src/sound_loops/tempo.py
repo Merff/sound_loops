@@ -1,8 +1,4 @@
-"""Оценка темпа трека (BPM) через librosa — единственная новая тяжёлая
-зависимость проекта (итерация 4, docs/sound_loops-iteration-4.md).
-Декодирование по-прежнему через ffmpeg (decode_audio_mono), librosa только
-считает биты по готовому PCM.
-"""
+"""Оценка темпа трека (BPM) через librosa, считает биты по готовому PCM."""
 
 from __future__ import annotations
 

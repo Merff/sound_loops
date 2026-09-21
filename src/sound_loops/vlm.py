@@ -1,13 +1,11 @@
-"""VLM-описание сцены лупа и перевод его в музыкальный запрос (шаги A/Б
-итерации 2, см. docs/sound_loops-iteration-2.md).
+"""VLM-описание сцены лупа и перевод его в музыкальный запрос.
 
 Обе задачи используют одну и ту же модель через Ollama: отдельная текстовая
 модель для шага B выгружала бы веса шага A из памяти при каждом прогоне
 (Ollama держит одну модель за раз при нехватке ОЗУ), а qwen3-vl:4b-instruct
 с чисто текстовой задачей справляется нормально.
 
-Настоящая реализация спрятана за Protocol SceneAnalyzer — по тому же
-принципу, что Embedder в embeddings.py: тесты подставляют детерминированный
+Настоящая реализация спрятана за Protocol SceneAnalyzer: тесты подставляют детерминированный
 fake вместо реального похода в Ollama.
 """
 
@@ -76,8 +74,7 @@ class SceneObservation(BaseModel):
     @classmethod
     def _dedupe_mood(cls, value: list[Mood]) -> list[Mood]:
         """4B-модель иногда повторяет одно и то же значение (['dreamy', 'dreamy']) —
-        схема гарантирует длину 1-3, но не уникальность, дедуп молча дешевле
-        ретрая на VLM ради чисто косметической проблемы."""
+        схема гарантирует длину 1-3, но не уникальность."""
         return list(dict.fromkeys(value))
 
 
@@ -95,7 +92,7 @@ Vocals = Literal["instrumental", "with_vocals"]
 
 
 class MusicQuery(BaseModel):
-    """Шаг B: короткое текстовое описание музыки для CLAP-поиска.
+    """короткое текстовое описание музыки для CLAP-поиска.
 
     CLAP-текстовая башня обучена на описаниях звука, а не сцены — запрос
     вида «a man falls off a skateboard» ищет мусор. Нужно «fast aggressive
@@ -124,7 +121,7 @@ class MusicQuery(BaseModel):
 
 
 class RerankChoice(BaseModel):
-    """Шаг переранжирования (итерация 4): модель получает пронумерованный
+    """переранжирование: модель получает пронумерованный
     список кандидатов с их атрибутами и выбирает один, объясняя выбор —
     RAG в чистом виде, контекст собран из базы, а не лежит в весах модели."""
 
@@ -140,15 +137,14 @@ class SceneAnalyzer(Protocol):
         """Кадры лупа (JPEG-байты) -> обстановка и настроение сцены (без motion)."""
 
     def compose_music_query(self, scene: SceneDescription, feedback_history: Sequence[str] = ()) -> MusicQuery:
-        """Полное описание сцены (+ опционально текст обратной связи пользователя,
-        см. агентный резервный путь в agent_planner.py) -> короткий текстовый
+        """Полное описание сцены (+ опционально текст обратной связи пользователя) -> короткий текстовый
         запрос для CLAP-поиска музыки."""
 
     def rerank(self, scene: SceneDescription, candidate_descriptions: Sequence[str]) -> RerankChoice:
         """Описание сцены + пронумерованные читаемые описания кандидатов -> выбор + объяснение."""
 
     def bind_tools(self, tools: Sequence[BaseTool]) -> Runnable[LanguageModelInput, object]:
-        """Та же модель с привязанными инструментами (узел plan, итерация 5) —
+        """Та же модель с привязанными инструментами —
         единственный способ достать вызываемую модель наружу, чтобы вызывающий
         код (agent_planner.py) не был завязан на ChatOllama напрямую."""
 
@@ -189,8 +185,7 @@ _SCENE_INSTRUCTION = (
 # без этого шаг B тянется к orchestral/cinematic, которых в библиотеке нет.
 # Библиотека сбалансирована точно (по 1000 треков на жанр, см. README) —
 # короткие описания ниже призваны отучить модель от дефолта на electronic
-# и дать за что зацепиться помимо самого названия жанра. Не приватная —
-# переиспользуется agent_planner.py для того же промпта про жанры библиотеки.
+# и дать за что зацепиться помимо самого названия жанра.
 LIBRARY_GENRES_WITH_CHARACTER = (
     "Electronic (synths, drum machines, digital production), "
     "Rock (electric guitars, live drums, driving energy), "
@@ -344,5 +339,5 @@ class OllamaSceneAnalyzer:
         # .with_retry() — тот же принцип, что у остальных цепочек в этом классе:
         # Ollama иногда роняет вызов с tool calling ошибкой разбора ответа
         # (invalid character ... after object key:value pair, status code -1) —
-        # транзиентная проблема стрима/клиента, не логическая ошибка промпта.
+        # транзиентная проблема стрима/клиента.
         return self._chat.bind_tools(tools).with_retry(stop_after_attempt=2)

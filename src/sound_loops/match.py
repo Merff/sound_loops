@@ -41,8 +41,8 @@ def manual_match(
     query: str,
     top_n: int,
 ) -> ManualMatchResult:
-    """Прямой текстовый запрос пользователя вместо VLM-цепочки -> top_n треков CLAP-поиском -> рендер каждого. analysis_id
-    остаётся NULL, music_query — текст пользователя"""
+    """Прямой текстовый запрос пользователя вместо VLM-цепочки -> top_n треков CLAP-поиском -> рендер каждого.
+    analysis_id остаётся NULL, music_query — текст пользователя"""
     loop = get_loop_by_path(conn, loop_path, settings)
     candidates = search_tracks(conn, embedder, query, top_n, min_duration_seconds=loop.duration_seconds)
 

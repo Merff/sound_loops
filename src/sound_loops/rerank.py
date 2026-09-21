@@ -1,10 +1,10 @@
-"""Переранжирование кандидатов моделью (итерация 4, docs/sound_loops-iteration-4.md):
-RAG в чистом виде — контекст (кандидаты с их атрибутами из базы) передаётся
+"""Переранжирование кандидатов моделью:
+RAG — контекст (кандидаты с их атрибутами из базы) передаётся
 модели вместе с описанием сцены, решение (Топ-3) остаётся за ней.
 
 Не считаем заранее, что это помогает: маленькая модель может проиграть
 простому топ-1 по вектору — это нормальный результат, его меряет eval-run
-(--rerank), не эта функция.
+(--rerank).
 """
 
 from __future__ import annotations
@@ -49,7 +49,7 @@ def _describe_candidate(rank: int, candidate: SearchResult) -> str:
 def rerank_candidates(
     analyzer: SceneAnalyzer, scene: SceneDescription, candidates: list[SearchResult]
 ) -> RerankResult:
-    """candidates — уже отобранный пул (top RERANK_POOL_SIZE), не весь топ поиска."""
+    """candidates — уже отобранный пул (top RERANK_POOL_SIZE)."""
     if not candidates:
         raise ValueError("нечего переранжировать — пустой список кандидатов")
 
