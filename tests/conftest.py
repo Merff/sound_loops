@@ -155,11 +155,8 @@ class FakeSceneAnalyzer:
     model_id = "fake-scene-analyzer-v1"
     prompt_version = "fake-v1"
 
-    def __init__(
-        self, query: str = "slow dreamy ambient with soft piano and pads", rerank_choice: int = 1
-    ) -> None:
+    def __init__(self, query: str = "slow dreamy ambient with soft piano and pads") -> None:
         self._query = query
-        self._rerank_choice = rerank_choice
         self.describe_calls = 0
         self.compose_calls = 0
         self.rerank_calls = 0
@@ -178,7 +175,7 @@ class FakeSceneAnalyzer:
 
     def rerank(self, scene: SceneDescription, candidate_descriptions) -> RerankChoice:
         self.rerank_calls += 1
-        return RerankChoice(candidate_index=self._rerank_choice, reasoning="fake reasoning")
+        return RerankChoice(candidate_index=1, reasoning="fake reasoning")
 
     def bind_tools(self, tools):
         """Возвращает раз заданный через set_tool_call_turns сценарий ответов
@@ -214,12 +211,6 @@ class _ScriptedToolModel:
 @pytest.fixture
 def fake_scene_analyzer() -> FakeSceneAnalyzer:
     return FakeSceneAnalyzer()
-
-
-@pytest.fixture
-def make_fake_scene_analyzer():
-    """Фабрика FakeSceneAnalyzer с нестандартными параметрами (например rerank_choice)."""
-    return FakeSceneAnalyzer
 
 
 def _derive_test_database_url() -> str:

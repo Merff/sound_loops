@@ -21,14 +21,11 @@ def _loop_result(loop: str, *, mood: float, hit1: bool, hit5: bool, rank: int | 
 
 def _run(loops: list[LoopEvalResult], search_depth: int = 100) -> EvalRun:
     n = len(loops)
-    ranks = [r.best_rank for r in loops if r.best_rank is not None]
     aggregates = EvalAggregates(
         setting_accuracy=1.0,
         mean_mood_overlap=sum(r.mood_overlap for r in loops) / n if n else 0.0,
         hit_at_1_rate=sum(r.hit_at_1 for r in loops) / n if n else 0.0,
         hit_at_5_rate=sum(r.hit_at_5 for r in loops) / n if n else 0.0,
-        mean_best_rank=(sum(ranks) / len(ranks)) if ranks else None,
-        not_found_count=n - len(ranks),
         mean_penalized_rank=sum(penalized_rank(r.best_rank, search_depth) for r in loops) / n if n else 0.0,
     )
     return EvalRun(

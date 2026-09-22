@@ -40,17 +40,19 @@ README) ·
 
 `cli.py`: `init-db`, `ingest-loops`, `ingest-tracks`, `render [--loop PATH]`, `index`,
 `search QUERY [--top N] [--export-dir DIR]`, `analyze [--loop PATH]`,
-`match [--loop PATH] [--rerank]`, `ui`, `clear-renders`,
-`clear-analyses`, `clap-check`, `eval-run [--loop PATH] [--rerank]
-[--agent]`, `eval-compare RUN_A RUN_B`, `blind-eval`. Через
-`make` — см. `Makefile` (флаги: `LOOP=`, `RERANK=1`, `AGENT=1`).
+`match [--loop PATH]`, `ui`, `clear-renders`,
+`clear-analyses`, `clap-check`, `eval-run [--loop PATH] [--agent]`,
+`eval-compare RUN_A RUN_B`, `blind-eval`. Через
+`make` — см. `Makefile` (флаги: `LOOP=`, `AGENT=1`).
 
 Зависимости между командами, не видные из `--help`:
 - **`match` требует, чтобы `analyze` уже был прогнан на этом лупе** —
   иначе `MatchError` с подсказкой. Это намеренно разные команды (не одна
   VLM-команда), чтобы дорогой шаг A гонять редко, а B/C/D — дёшево и часто.
-- **`eval-run --agent` несовместим с `--rerank`** — агент переранжирует
-  сам, это независимая конфигурация.
+- **Переранжирование отдельной конфигурацией эвала не меряется** — оно
+  переставляет только первые `RERANK_POOL_SIZE` позиций, поэтому hit@5 и
+  best_rank у него тождественно равны конфигурации без него. Узел `rerank`
+  графа входит в прогон `eval-run --agent`.
 - `clear-renders` трогает БД и файлы, но не `video_analyses`.
   `clear-analyses` каскадно чистит и рендеры, сделанные по этим анализам
   (`renders.analysis_id IS NOT NULL`), но не baseline-рендеры итерации 0.
@@ -159,9 +161,8 @@ README «Поиск музыки по тексту»).
   `feedback` ниже). `tool_calls_made`/`fallback_used` печатаются в
   `eval-run --agent` как честная метрика надёжности tool calling на
   локальной 4B-модели.
-- **`rerank`**: `rerank_candidates` (та же функция, что в `match
-  --rerank`) на каждый из 3 пулов, с дедупликацией по треку между
-  слотами одного круга.
+- **`rerank`**: `rerank_candidates` на каждый из 3 пулов, с дедупликацией
+  по треку между слотами одного круга.
 - **`feedback`**: штатный `interrupt()` LangGraph — граф стоит **между**
   вызовами `graph.invoke()`, состояние в Postgres-чекпойнтере. Текст
   обратной связи **не разбирается**, идёт в состояние как есть и

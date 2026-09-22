@@ -72,21 +72,6 @@ def test_match_once_never_reruns_scene_analysis(
     assert first.analysis.id == second.analysis.id
 
 
-def test_match_once_with_rerank_prints_reasoning(
-    db_conn, db_settings, get_silent_loop, get_tone_track, tmp_path, fake_embedder, fake_scene_analyzer
-):
-    _loop_id, loop_path = _setup_loop_and_track(
-        db_conn, db_settings, get_silent_loop, get_tone_track, tmp_path, fake_embedder
-    )
-    analyze_loop_by_path(db_conn, fake_scene_analyzer, db_settings, loop_path)
-
-    result = match_once(db_conn, fake_scene_analyzer, fake_embedder, db_settings, loop_path, use_rerank=True)
-
-    assert result.output_path.exists()
-    assert result.rerank_reasoning == "fake reasoning"
-    assert fake_scene_analyzer.rerank_calls == 1
-
-
 def test_match_once_picks_random_loop_when_no_path_given(
     db_conn, db_settings, get_silent_loop, get_tone_track, tmp_path, fake_embedder, fake_scene_analyzer
 ):

@@ -182,8 +182,7 @@ def analyze_cmd(loop_path: Path | None) -> None:
     default=None,
     help="Путь к конкретному лупу. Без флага берётся случайный луп из базы.",
 )
-@click.option("--rerank/--no-rerank", default=False, help="Переранжирование топ-кандидатов моделью.")
-def match_cmd(loop_path: Path | None, rerank: bool) -> None:
+def match_cmd(loop_path: Path | None) -> None:
     """Подобрать музыку под уже проанализированный луп (см. analyze) -> CLAP-поиск -> mp4."""
     settings = load_settings()
 
@@ -201,7 +200,7 @@ def match_cmd(loop_path: Path | None, rerank: bool) -> None:
     )
 
     with connect(settings.database_url) as conn:
-        result = match_once(conn, analyzer, embedder, settings, loop_path, use_rerank=rerank)
+        result = match_once(conn, analyzer, embedder, settings, loop_path)
 
     scene = result.analysis.scene
     click.echo(f"Луп: {result.loop.path}")
@@ -211,8 +210,6 @@ def match_cmd(loop_path: Path | None, rerank: bool) -> None:
     for rank, r in enumerate(result.candidates, start=1):
         title = r.title or Path(r.path).name
         click.echo(f"  {rank}. {r.similarity:.3f}  {title} — {r.artist or '?'}  [{r.path}]")
-    if result.rerank_reasoning:
-        click.echo(f"Выбор модели (переранжирование): {result.rerank_reasoning}")
     click.echo(str(result.output_path))
 
 
@@ -220,17 +217,12 @@ def match_cmd(loop_path: Path | None, rerank: bool) -> None:
 @click.option(
     "--loop", "loop_filter", type=str, default=None, help="Прогнать только один луп (путь как в разметке)."
 )
-@click.option("--rerank/--no-rerank", default=False, help="Переранжирование топ-кандидатов моделью.")
 @click.option(
     "--agent/--no-agent", default=False,
-    help="Первый проход графа-агента (итерация 5): поиск как инструмент, hit@k по объединению 3 query. "
-    "Несовместимо с --rerank — агент переранжирует сам.",
+    help="Первый проход графа-агента (итерация 5): поиск как инструмент, hit@k по объединению 3 query.",
 )
-def eval_run_cmd(loop_filter: str | None, rerank: bool, agent: bool) -> None:
+def eval_run_cmd(loop_filter: str | None, agent: bool) -> None:
     """Прогнать пайплайн по evals/dataset.json, посчитать метрики и сохранить прогон."""
-    if agent and rerank:
-        raise click.ClickException("--agent несовместим с --rerank — агент переранжирует сам")
-
     settings = load_settings()
 
     from sound_loops.eval_dataset import load_dataset
@@ -259,7 +251,7 @@ def eval_run_cmd(loop_filter: str | None, rerank: bool, agent: bool) -> None:
     with connect(settings.database_url) as conn:
         run = run_eval(
             conn, analyzer, embedder, settings, dataset,
-            temperature=0.0, use_rerank=rerank, use_agent=agent,
+            temperature=0.0, use_agent=agent,
         )
 
     run.print_summary()
@@ -279,8 +271,7 @@ def eval_compare_cmd(run_a: Path, run_b: Path) -> None:
 
 
 @cli.command("blind-eval")
-@click.option("--rerank/--no-rerank", default=False, help="Переранжирование топ-кандидатов моделью.")
-def blind_eval_cmd(rerank: bool) -> None:
+def blind_eval_cmd() -> None:
     """Слепое сравнение пайплайна со случайным baseline на всём наборе разметки."""
     settings = load_settings()
 
@@ -304,17 +295,13 @@ def blind_eval_cmd(rerank: bool) -> None:
     )
 
     with connect(settings.database_url) as conn:
-        pairs = prepare_pairs(conn, analyzer, embedder, settings, dataset, use_rerank=rerank)
+        pairs = prepare_pairs(conn, analyzer, embedder, settings, dataset)
 
     def ask(pair) -> str:
         click.echo(f"\nЛуп: {pair.loop}")
         click.echo(f"  A: {pair.path_a}")
         click.echo(f"  B: {pair.path_b}")
-        choice = click.prompt("Какой вариант лучше подходит?", type=click.Choice(["A", "B", "tie"]))
-        # Печатается после ответа, не до — до ответа это раскрыло бы, что есть что (baseline объяснения не даёт).
-        if pair.rerank_reasoning:
-            click.echo(f"  Выбор модели (переранжирование): {pair.rerank_reasoning}")
-        return choice
+        return click.prompt("Какой вариант лучше подходит?", type=click.Choice(["A", "B", "tie"]))
 
     run = score_pairs(pairs, ask)
     path = save_blind_run(run, settings.eval_blind_runs_dir)

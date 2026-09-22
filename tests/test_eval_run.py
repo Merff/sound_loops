@@ -75,7 +75,6 @@ def test_run_eval_mean_penalized_rank_uses_search_depth_for_not_found(
     )
 
     assert run.loops[0].best_rank is None
-    assert run.aggregates.mean_best_rank is None
     assert run.aggregates.mean_penalized_rank == db_settings.eval_search_depth
 
 
@@ -107,36 +106,6 @@ def _insert_track_with_embedding(conn, path: str, embedding: np.ndarray, duratio
         (path, duration_seconds, embedding, _OrderedTextEmbedder.model_id),
     )
     conn.commit()
-
-
-def test_run_eval_with_rerank_promotes_model_choice_to_hit_at_1(
-    db_conn, db_settings, get_silent_loop, tmp_path, make_fake_scene_analyzer
-):
-    """rerank_choice=2 -> модель предпочла второй по вектору кандидат вместо топ-1;
-    hit_at_1/best_rank должны отражать реальный выбор модели, а не исходный
-    топ-1 по вектору (места 3+ реранком не тронуты)."""
-    loop_path = get_silent_loop(tmp_path / "loop.mp4", 4.0)
-    ingest_loop_file(db_conn, loop_path, db_settings)
-
-    top_by_vector = "top_by_vector.mp3"
-    second_by_vector = "second_by_vector.mp3"
-    _insert_track_with_embedding(db_conn, top_by_vector, _basis(0))
-    close = _basis(0) + 0.1 * _basis(1)
-    _insert_track_with_embedding(db_conn, second_by_vector, (close / np.linalg.norm(close)).astype(np.float32))
-
-    embedder = _OrderedTextEmbedder()
-    analyzer = make_fake_scene_analyzer(rerank_choice=2)
-    dataset = _dataset(loop_path, [second_by_vector])  # good — только второй по вектору
-
-    without_rerank = run_eval(db_conn, analyzer, embedder, db_settings, dataset, temperature=0.0)
-    assert without_rerank.loops[0].hit_at_1 is False
-    assert without_rerank.loops[0].best_rank == 2
-
-    with_rerank = run_eval(db_conn, analyzer, embedder, db_settings, dataset, temperature=0.0, use_rerank=True)
-    assert with_rerank.loops[0].hit_at_1 is True
-    assert with_rerank.loops[0].best_rank == 1
-    assert with_rerank.loops[0].rerank_reasoning == "fake reasoning"
-    assert analyzer.rerank_calls == 1
 
 
 def test_run_eval_empty_dataset_raises(db_conn, db_settings, fake_embedder, fake_scene_analyzer):
@@ -192,8 +161,6 @@ def test_run_eval_agent_computes_hit_at_k_over_merged_query_pools(
     assert result.hit_at_1 is True
     assert result.tool_calls_made == 3
     assert result.fallback_used == 0
-    assert run.aggregates.agent_tool_calls_total == 3
-    assert run.aggregates.agent_fallback_used_total == 0
 
 
 def test_run_eval_agent_does_not_render_anything(

@@ -157,6 +157,14 @@ def plan_tracks(
     no_tool_streak = 0
     iterations = 0
 
+    def use_fallback() -> None:
+        # feedback_history передаётся и сюда — иначе "мрачнее"/"без вокала"
+        # молча игнорировалось бы для слотов, закрытых этим путём.
+        nonlocal fallback_used
+        fallback_query = analyzer.compose_music_query(scene, feedback_history)
+        run_search(fallback_query.query, vocals=fallback_query.vocals)
+        fallback_used += 1
+
     while len(calls_log) < slot_count and iterations < settings.agent_max_plan_iterations:
         iterations += 1
         response: AIMessage = model.invoke(messages)
@@ -185,20 +193,14 @@ def plan_tracks(
             continue
 
         # Второй раз подряд без вызова инструмента — резервный путь.
-        # feedback_history передаётся и сюда — иначе "мрачнее"/"без вокала"
-        # молча игнорировалось бы для слотов, закрытых этим путём.
-        fallback_query = analyzer.compose_music_query(scene, feedback_history)
-        run_search(fallback_query.query, vocals=fallback_query.vocals)
-        fallback_used += 1
+        use_fallback()
         no_tool_streak = 0
 
     # Потолок ходов исчерпан, а слотов всё ещё не хватает — молча отдавать
     # меньше settings.agent_slot_count кандидатов нельзя (см. docstring),
     # достающие слоты закрываются тем же резервным путём.
     while len(calls_log) < slot_count:
-        fallback_query = analyzer.compose_music_query(scene, feedback_history)
-        run_search(fallback_query.query, vocals=fallback_query.vocals)
-        fallback_used += 1
+        use_fallback()
 
     slots = [(rec.query, rec.results) for rec in calls_log[:slot_count]]
     return PlanOutcome(slots=slots, tool_calls_made=tool_calls_made, fallback_used=fallback_used)

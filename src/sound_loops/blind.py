@@ -30,7 +30,6 @@ class BlindPair(BaseModel):
     label_a: Side
     path_a: str
     path_b: str
-    rerank_reasoning: str | None = None  # объяснение модели (use_rerank=True) — печатается после ответа
 
 
 class BlindAnswer(BaseModel):
@@ -53,12 +52,11 @@ def prepare_pairs(
     embedder: Embedder,
     settings: Settings,
     dataset: list[LoopAnnotation],
-    use_rerank: bool = False,
 ) -> list[BlindPair]:
     pairs = []
     for entry in dataset:
         loop_path = Path(entry.loop)
-        pipeline_result = match_once(conn, analyzer, embedder, settings, loop_path, use_rerank=use_rerank)
+        pipeline_result = match_once(conn, analyzer, embedder, settings, loop_path)
         baseline_path = render_once(conn, settings, loop_path)
 
         label_a: Side = random.choice(["pipeline", "baseline"])
@@ -66,15 +64,7 @@ def prepare_pairs(
         path_a = pipeline_path if label_a == "pipeline" else baseline_path_str
         path_b = baseline_path_str if label_a == "pipeline" else pipeline_path
 
-        pairs.append(
-            BlindPair(
-                loop=entry.loop,
-                label_a=label_a,
-                path_a=path_a,
-                path_b=path_b,
-                rerank_reasoning=pipeline_result.rerank_reasoning,
-            )
-        )
+        pairs.append(BlindPair(loop=entry.loop, label_a=label_a, path_a=path_a, path_b=path_b))
     return pairs
 
 

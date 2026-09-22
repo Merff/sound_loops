@@ -1,6 +1,6 @@
 """Подбор и наложение трека под уже проанализированный луп: музыкальный запрос ->
-CLAP-поиск -> сборка превью. use_rerank включает переранжирование поверх
-того же пайплайна — конфигурация параметром вызова, не правкой кода.
+CLAP-поиск -> сборка превью. Быстрый путь без графа: одно превью на луп,
+нужен blind-eval и ручной проверке.
 """
 
 from __future__ import annotations
@@ -14,7 +14,6 @@ from sound_loops.analysis import AnalysisRecord, get_cached_analysis
 from sound_loops.config import Settings
 from sound_loops.embeddings import Embedder
 from sound_loops.render import LoopRow, get_loop_by_path, get_random_loop, render_preview
-from sound_loops.rerank import RERANK_POOL_SIZE, rerank_candidates
 from sound_loops.search import SearchResult, search_tracks
 from sound_loops.vlm import SceneAnalyzer
 
@@ -64,7 +63,6 @@ class MatchResult:
     music_query: str
     candidates: list[SearchResult]
     output_path: Path
-    rerank_reasoning: str | None
 
 
 def match_once(
@@ -73,7 +71,6 @@ def match_once(
     embedder: Embedder,
     settings: Settings,
     loop_path: Path | None = None,
-    use_rerank: bool = False,
 ) -> MatchResult:
     loop = get_loop_by_path(conn, loop_path, settings) if loop_path else get_random_loop(conn)
 
@@ -86,17 +83,10 @@ def match_once(
         )
 
     music_query = analyzer.compose_music_query(analysis.scene)
-    top_n = RERANK_POOL_SIZE if use_rerank else 3
 
     candidates = search_tracks(
-        conn, embedder, music_query.query, top_n, min_duration_seconds=loop.duration_seconds
+        conn, embedder, music_query.query, 3, min_duration_seconds=loop.duration_seconds
     )
-
-    rerank_reasoning = None
-    if use_rerank:
-        rerank_result = rerank_candidates(analyzer, analysis.scene, candidates)
-        candidates = rerank_result.reordered
-        rerank_reasoning = rerank_result.reasoning
 
     best = candidates[0]
     track_duration = conn.execute(
@@ -112,5 +102,4 @@ def match_once(
         music_query=music_query.query,
         candidates=candidates,
         output_path=output_path,
-        rerank_reasoning=rerank_reasoning,
     )

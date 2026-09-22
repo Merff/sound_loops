@@ -57,21 +57,6 @@ def test_prepare_pairs_produces_two_distinct_playable_outputs(
     assert pair.label_a in ("pipeline", "baseline")
 
 
-def test_prepare_pairs_captures_rerank_reasoning_only_when_enabled(
-    db_conn, db_settings, get_silent_loop, get_tone_track, tmp_path, fake_embedder, fake_scene_analyzer
-):
-    loop_path = _setup(db_conn, db_settings, get_silent_loop, get_tone_track, tmp_path, fake_embedder)
-    analyze_loop_by_path(db_conn, fake_scene_analyzer, db_settings, loop_path)
-
-    without_rerank = prepare_pairs(db_conn, fake_scene_analyzer, fake_embedder, db_settings, _dataset(loop_path))
-    assert without_rerank[0].rerank_reasoning is None
-
-    with_rerank = prepare_pairs(
-        db_conn, fake_scene_analyzer, fake_embedder, db_settings, _dataset(loop_path), use_rerank=True
-    )
-    assert with_rerank[0].rerank_reasoning == "fake reasoning"
-
-
 def test_score_pairs_records_which_side_won(
     db_conn, db_settings, get_silent_loop, get_tone_track, tmp_path, fake_embedder, fake_scene_analyzer
 ):

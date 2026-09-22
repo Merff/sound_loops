@@ -7,12 +7,10 @@
 для этого есть blind-eval). Температуру задаёт вызывающий код (CLI фиксирует
 0.0 для воспроизводимости).
 
-use_rerank реранжирует только топ-RERANK_POOL_SIZE (см. rerank.py) —
-hit@1 после этого отражает реальный выбор модели, а hit@5/best_rank
-считаются по тому же полному списку (search_depth), что и в конфигурациях
-без переранжирования: выбор модели просто поднимается на первое место,
-остальные места 4+ не трогаются. Это специально сделано сравнимым с
-конфигурацией без переранжирования, а не отдельной метрикой.
+Переранжирование отдельной конфигурацией здесь не меряется: оно
+переставляет только первые RERANK_POOL_SIZE позиций, поэтому hit@5 и
+best_rank у него тождественно равны конфигурации без него. Узел rerank
+графа входит в прогон --agent.
 """
 
 from __future__ import annotations
@@ -34,7 +32,6 @@ from sound_loops.eval_metrics import best_rank, hit_at_k, mood_overlap, penalize
 from sound_loops.ffmpeg_utils import extract_frames
 from sound_loops.motion import estimate_motion
 from sound_loops.render import get_loop_by_path
-from sound_loops.rerank import RERANK_POOL_SIZE, rerank_candidates
 from sound_loops.search import search_tracks
 from sound_loops.vlm import Motion, SceneAnalyzer, SceneDescription
 
@@ -51,7 +48,6 @@ class LoopEvalResult(BaseModel):
     hit_at_1: bool
     hit_at_5: bool
     best_rank: int | None
-    rerank_reasoning: str | None = None
     # Только для use_agent=True: queries — 3 запроса узла plan,
     # tool_calls_made/fallback_used — надёжность вызова инструмента на этом лупе.
     queries: list[str] = []
@@ -64,16 +60,9 @@ class EvalAggregates(BaseModel):
     mean_mood_overlap: float
     hit_at_1_rate: float
     hit_at_5_rate: float
-    mean_best_rank: float | None
-    not_found_count: int
-    # mean_penalized_rank считает не найденное как search_depth и годится для сравнения конфигураций
-    # между собой — mean_best_rank оставлен для того, что реально нашлось.
+    # Не найденное считается как search_depth — иначе среднее смещается в
+    # пользу конфигурации, которая чаще проваливает поиск целиком.
     mean_penalized_rank: float
-    # Только при use_agent=True: сколько раз узел plan вызвал инструмент
-    # сам и сколько раз сработал резервный путь — суммарно по всем лупам,
-    # честная характеристика надёжности tool calling на локальной 4B-модели.
-    agent_tool_calls_total: int = 0
-    agent_fallback_used_total: int = 0
 
 
 class EvalRun(BaseModel):
@@ -83,7 +72,6 @@ class EvalRun(BaseModel):
     prompt_version: str
     temperature: float
     search_depth: int
-    use_rerank: bool = False
     use_agent: bool = False
     loops: list[LoopEvalResult]
     aggregates: EvalAggregates
@@ -96,35 +84,15 @@ class EvalRun(BaseModel):
         )
         if self.use_agent:
             print("Конфигурация: агент (узел plan вызывает поиск сам, hit@k по объединению 3 query)")
-        else:
-            print(f"Конфигурация: переранжирование={'да' if self.use_rerank else 'нет'}")
         print(f"Лупов: {len(self.loops)}")
         print(f"setting accuracy:    {a.setting_accuracy:.2f}")
         print(f"mood overlap (mean): {a.mean_mood_overlap:.2f}")
         print(f"hit@1:               {a.hit_at_1_rate:.2f}")
         print(f"hit@5:               {a.hit_at_5_rate:.2f}")
-        if a.mean_best_rank is not None:
-            print(
-                f"mean best rank:      {a.mean_best_rank:.1f}  "
-                f"(не найдено в топ-{self.search_depth}: {a.not_found_count})"
-            )
-        else:
-            print(f"mean best rank:      n/a (не найдено ни разу в топ-{self.search_depth})")
         print(
             f"mean penalized rank: {a.mean_penalized_rank:.1f}  "
-            "(не найдено считается как search_depth — для сравнения конфигураций между собой)"
+            f"(не найдено считается как search_depth={self.search_depth})"
         )
-        if self.use_agent:
-            total_calls = a.agent_tool_calls_total + a.agent_fallback_used_total
-            fallback_share = a.agent_fallback_used_total / total_calls if total_calls else 0.0
-            print(
-                f"вызовов инструмента моделью: {a.agent_tool_calls_total}  "
-                f"резервных: {a.agent_fallback_used_total}  (доля резервных: {fallback_share:.0%})"
-            )
-        if self.use_rerank:
-            print("\nОбъяснения переранжирования:")
-            for r in self.loops:
-                print(f"  {r.loop}: {r.rerank_reasoning}")
 
 
 def git_commit() -> str:
@@ -143,7 +111,6 @@ def _evaluate_loop(
     embedder: Embedder,
     settings: Settings,
     entry: LoopAnnotation,
-    use_rerank: bool,
 ) -> LoopEvalResult:
     loop = get_loop_by_path(conn, Path(entry.loop), settings)
 
@@ -164,13 +131,6 @@ def _evaluate_loop(
         conn, embedder, music_query.query, settings.eval_search_depth, min_duration_seconds=loop.duration_seconds
     )
 
-    rerank_reasoning = None
-    if use_rerank:
-        pool = candidates[:RERANK_POOL_SIZE]
-        rerank_result = rerank_candidates(analyzer, scene, pool)
-        candidates = rerank_result.reordered + candidates[RERANK_POOL_SIZE:]
-        rerank_reasoning = rerank_result.reasoning
-
     ranked_paths = [c.path for c in candidates]
 
     return LoopEvalResult(
@@ -185,7 +145,6 @@ def _evaluate_loop(
         hit_at_1=hit_at_k(ranked_paths, entry.good_tracks, 1),
         hit_at_5=hit_at_k(ranked_paths, entry.good_tracks, 5),
         best_rank=best_rank(ranked_paths, entry.good_tracks),
-        rerank_reasoning=rerank_reasoning,
     )
 
 
@@ -230,17 +189,12 @@ def _evaluate_loop_agent(graph, settings: Settings, entry: LoopAnnotation) -> Lo
 
 def _aggregate(loops: list[LoopEvalResult], search_depth: int) -> EvalAggregates:
     n = len(loops)
-    ranks = [r.best_rank for r in loops if r.best_rank is not None]
     return EvalAggregates(
         setting_accuracy=sum(r.setting_correct for r in loops) / n,
         mean_mood_overlap=sum(r.mood_overlap for r in loops) / n,
         hit_at_1_rate=sum(r.hit_at_1 for r in loops) / n,
         hit_at_5_rate=sum(r.hit_at_5 for r in loops) / n,
-        mean_best_rank=(sum(ranks) / len(ranks)) if ranks else None,
-        not_found_count=n - len(ranks),
         mean_penalized_rank=sum(penalized_rank(r.best_rank, search_depth) for r in loops) / n,
-        agent_tool_calls_total=sum(r.tool_calls_made for r in loops),
-        agent_fallback_used_total=sum(r.fallback_used for r in loops),
     )
 
 
@@ -251,7 +205,6 @@ def run_eval(
     settings: Settings,
     dataset: list[LoopAnnotation],
     temperature: float,
-    use_rerank: bool = False,
     use_agent: bool = False,
 ) -> EvalRun:
     if not dataset:
@@ -262,10 +215,9 @@ def run_eval(
         graph = build_eval_graph(conn, embedder, analyzer, eval_settings)
         loops = [_evaluate_loop_agent(graph, eval_settings, entry) for entry in dataset]
     else:
-        loops = [_evaluate_loop(conn, analyzer, embedder, settings, entry, use_rerank) for entry in dataset]
+        loops = [_evaluate_loop(conn, analyzer, embedder, settings, entry) for entry in dataset]
     return EvalRun(
         timestamp=datetime.now(UTC).isoformat(),
-        use_rerank=use_rerank,
         use_agent=use_agent,
         commit=git_commit(),
         model=analyzer.model_id,

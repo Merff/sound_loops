@@ -30,8 +30,6 @@ def _format_internals(state: dict) -> str:
     lines = [
         f"Сцена - {scene.get('setting', '?')}, движение - {scene.get('motion', '?')}, "
         f"настроение - {', '.join(scene.get('mood', []))}",
-        f"Вызовов инструмента моделью / резервных: "
-        f"{state.get('tool_calls_total', 0)} / {state.get('fallback_used_total', 0)}",
     ]
     for i, (query, reasoning) in enumerate(
         zip(state.get("slot_queries", []), state.get("slot_reasoning", []), strict=False), start=1
